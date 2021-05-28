@@ -14,7 +14,7 @@ namespace MathematicalLogicProcessor
         private const string closeBracePattern = @"\)";
         private const string constPattern = @"1|0";
 
-        private Dictionary<string, int> OperationPriorities = new Dictionary<string, int>
+        private static Dictionary<string, int> Priorities = new Dictionary<string, int>
         {
             {"¬", 6},
             {"&", 5},
@@ -24,6 +24,18 @@ namespace MathematicalLogicProcessor
             {"←", 3},
             {"↔", 2},
             {"↓", 1}
+        };
+
+        private static Dictionary<string, int> OperationOperandsCount = new Dictionary<string, int>
+        {
+            {"¬", 1},
+            {"&", 2},
+            {"+", 2},
+            {"^", 2},
+            {"→", 2},
+            {"←", 2},
+            {"↔", 2},
+            {"↓", 2}
         };
 
         private string expression;
@@ -39,15 +51,11 @@ namespace MathematicalLogicProcessor
 
         public LogicalExpressionSyntaxAnalyzer(string expression)
         {
-            expression = Regex.Replace(expression, @"\s+", "");
-            tokens = GetTokens(expression);
-
-            if (CheckExpression(ref tokens))
+            if (CheckExpression(expression))
             {
+                tokens = ParseExpression(ref expression);
                 this.expression = expression;
-                
-                variables = tokens.Where(n => n.Type == TokenType.Variable).ToList();
-                operations = tokens.Where(n => n.Type == TokenType.Operation).ToList();
+
 
             }
             else
@@ -56,13 +64,26 @@ namespace MathematicalLogicProcessor
             }
         }
 
-        private bool CheckExpression(ref List<Token> tokens)
+        private static bool CheckExpression(string expression)
         {
-            //не должно начинаться с оператора, с закрывающей скобки
+            //не должно начинаться с оператора (кроме отрицания), с закрывающей скобки
             //не должно идти 2 операции подряд
             //добавить произведение, если идут два операнда подряд (переменная/константа)
+            //Проверка парных скобок
+            //Отбросить крайние скобки (если нужно)
             //отдельные числа отличные от 0 и 1
+            //Заменить скобки на круглые
             throw new NotImplementedException();
+        }
+
+        private List<Token> ParseExpression(ref string expression)
+        {
+            expression = Regex.Replace(expression, @"\s+", "");
+            
+            tokens = GetTokens(expression);
+            //
+
+            return tokens;
         }
 
         public static List<Token> GetTokens(string expression)
@@ -116,18 +137,56 @@ namespace MathematicalLogicProcessor
             return tokens;
         }
 
-        private static List<Token> GetPolishNotation(List<Token> tokens, List<Token> variables)
+        private static List<Token> GetPolishNotation(List<Token> tokens)
         {
             List<Token> result = new List<Token>();
             Stack<Token> stack = new Stack<Token>();
             for (int i = 0; i < tokens.Count; i++)
             {
-                if (variables.Any(n => n.Equals(tokens[i])))
+                if (tokens[i].Type == TokenType.Variable || tokens[i].Type == TokenType.Const)
                 {
+                    result.Add(tokens[i]);
 
+                    continue;
+                }
+
+                if (tokens[i].Type == TokenType.OpenBrace)
+                {
+                    stack.Push(tokens[i]);
+
+                    continue;
+                }
+
+                if (tokens[i].Type == TokenType.CloseBrace)
+                {
+                    while (stack.Peek().Type != TokenType.OpenBrace)
+                    {
+                        result.Add(stack.Pop());
+                    }
+
+                    stack.Pop();
+
+                    continue;
+                }
+
+                if (tokens[i].Type == TokenType.Operation)
+                {
+                    while ((stack.Count != 0) && (stack.Peek().Type == TokenType.Operation)
+                            && (Priorities[tokens[i].Value] <= Priorities[stack.Peek().Value]))
+                    {
+                        result.Add(stack.Pop());
+                    }
+
+                    stack.Push(tokens[i]);
+
+                    continue;
                 }
             }
 
+            while (stack.Count != 0)
+            {
+                result.Add(stack.Pop());
+            }
 
             return result;
         }
