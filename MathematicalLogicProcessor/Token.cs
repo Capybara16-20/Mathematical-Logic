@@ -2,15 +2,17 @@
 {
     public class Token
     {
-        private string value;
-        private TokenType type;
+        public const string TokenPattern = @"\(|\)|[A-Z][1-9]*[0-9]*|¬|\&|\+|\^|→|←|↔|↓|(?<=\W)1|(?<=\W)0";
 
-        public string Value { get { return value; } }
+        protected string identifier;
+        protected TokenType type;
+
+        public string Identifier { get { return identifier; } }
         public TokenType Type { get { return type; } }
 
         public Token(string value, TokenType type)
         {
-            this.value = value;
+            this.identifier = value;
             this.type = type;
         }
 
@@ -18,7 +20,7 @@
         {
             if (obj is Token token)
             {
-                return token.Value == value && token.Type == type;
+                return token.Identifier == identifier && token.Type == type;
             }
             else
             {

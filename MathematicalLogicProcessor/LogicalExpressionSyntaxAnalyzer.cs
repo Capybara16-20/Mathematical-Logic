@@ -1,61 +1,44 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
+using LinqExtention;
 
 namespace MathematicalLogicProcessor
 {
     public class LogicalExpressionSyntaxAnalyzer
     {
-        private const string tokenPattern = @"\(|\)|[A-Z][1-9]*[0-9]*|¬|\&|\+|\^|→|←|↔|↓|(?<=\W)1|(?<=\W)0";
-        private const string variablePattern = @"[A-Z][1-9]*[0-9]*";
-        private const string operationPattern = @"¬|\&|\+|\^|→|←|↔|↓";
+        private const string tokenPattern = Token.TokenPattern;
+        private const string variablePattern = Operand.VariablePattern;
+        private const string constPattern = Operand.ConstPattern;
+        private const string operationPattern = Operation.OperationPattern;
         private const string openBracePattern = @"\(";
         private const string closeBracePattern = @"\)";
-        private const string constPattern = @"1|0";
-
-        private static Dictionary<string, int> Priorities = new Dictionary<string, int>
-        {
-            {"¬", 6},
-            {"&", 5},
-            {"+", 4},
-            {"^", 4},
-            {"→", 3},
-            {"←", 3},
-            {"↔", 2},
-            {"↓", 1}
-        };
-
-        private static Dictionary<string, int> OperationOperandsCount = new Dictionary<string, int>
-        {
-            {"¬", 1},
-            {"&", 2},
-            {"+", 2},
-            {"^", 2},
-            {"→", 2},
-            {"←", 2},
-            {"↔", 2},
-            {"↓", 2}
-        };
 
         private string expression;
         private List<Token> tokens;
-        private List<Token> variables;
-        private List<Token> operations;
-        private string polishNotation;
+        private List<Operand> variables;
+        private List<Operation> operations;
+        private List<Token> polishNotation;
 
         public string Expression { get { return expression; } }
         public List<Token> Tokens { get { return tokens; } }
-        public List<Token> Variables { get { return variables; } }
-        public List<Token> Operations { get { return operations; } }
+        public List<Operand> Variables { get { return variables; } }
+        public List<Operation> Operations { get { return operations; } }
+        public List<Token> PolishNotation { get { return polishNotation; } }
 
         public LogicalExpressionSyntaxAnalyzer(string expression)
         {
+            tokens = ParseExpression(ref expression);
             if (CheckExpression(expression))
             {
-                tokens = ParseExpression(ref expression);
                 this.expression = expression;
-
+                /*variables = tokens.Where(n => n.Type == TokenType.Variable)
+                                  .DistinctBy(n => n.Identifier).OrderBy(n => n.Identifier).ToList();
+                operations = tokens.Where(n => n.Type == TokenType.Operation)
+                                  .DistinctBy(n => n.Identifier).ToList();*/
+                polishNotation = GetPolishNotation(tokens);
 
             }
             else
@@ -64,26 +47,128 @@ namespace MathematicalLogicProcessor
             }
         }
 
-        private static bool CheckExpression(string expression)
+        private static List<Token> ParseExpression(ref string expression)
         {
-            //не должно начинаться с оператора (кроме отрицания), с закрывающей скобки
-            //не должно идти 2 операции подряд
-            //добавить произведение, если идут два операнда подряд (переменная/константа)
-            //Проверка парных скобок
-            //Отбросить крайние скобки (если нужно)
-            //отдельные числа отличные от 0 и 1
-            //Заменить скобки на круглые
-            throw new NotImplementedException();
-        }
+            Regex variableRegex = new Regex(variablePattern, RegexOptions.IgnoreCase);
+            Regex constRegex = new Regex(constPattern, RegexOptions.IgnoreCase);
 
-        private List<Token> ParseExpression(ref string expression)
-        {
+            List<char> openBracesTypes = new List<char> { '[', '{' };
+            List<char> closeBracesTypes = new List<char> { ']', '}' };
+
+            //удалить пробелы +
             expression = Regex.Replace(expression, @"\s+", "");
-            
-            tokens = GetTokens(expression);
+
+            //заменить скобки на круглые +
+            List<char> symbols = expression.ToList();
+            for (int i = 0; i < symbols.Count; i++)
+            {
+                if (openBracesTypes.Contains(symbols[i]))
+                    symbols[i] = '(';
+
+                if (closeBracesTypes.Contains(symbols[i]))
+                    symbols[i] = ')';
+            }
+            expression = new string(symbols.ToArray());
+
+            //удалить скобки, если внутри них нет бинарных операций и других скобок
+            //
+            //
             //
 
+            //добавить произведение, если идут два операнда подряд (переменная/константа) +
+            List<Token> tokens = GetTokens(expression);
+            List<int> indexesToAdd = new List<int>();
+            int shift = 0;
+            for (int i = 1; i < tokens.Count; i++)
+            {
+                Token previousToken = tokens[i - 1];
+                Token followingToken = tokens[i];
+
+                if ((previousToken.Type == TokenType.Variable || previousToken.Type == TokenType.Const)
+                    && (followingToken.Type == TokenType.Variable || followingToken.Type == TokenType.Const))
+                {
+                    indexesToAdd.Add(i + shift);
+                    shift++;
+                }
+            }
+
+            foreach (int index in indexesToAdd)
+                tokens.Insert(index, new Token("&", TokenType.Operation));
+
+            StringBuilder sb = new StringBuilder();
+            foreach (Token token in tokens)
+                sb.Append(token.Identifier);
+
+            expression = sb.ToString();
             return tokens;
+        }
+
+        private static bool CheckExpression(string expression)
+        {
+            Dictionary<string, int> operationOperandsCount = Operation.OperationOperandsCount;
+
+            List<Token> tokens = GetTokens(expression);
+
+            //отдельные числа отличные от 0 и 1 +
+            if (tokens.Count != expression.Length)
+                return false;
+
+            //не должно начинаться с оператора (кроме отрицания), с закрывающей скобки +
+            Token firstToken = tokens.First();
+            if (firstToken.Type == TokenType.Operation
+                    && operationOperandsCount.Any(n => n.Key == firstToken.Identifier && n.Value == 2)
+                    || firstToken.Type == TokenType.CloseBrace)
+                return false;
+
+            Token lastToken = tokens.Last();
+            if (lastToken.Type == TokenType.Operation || lastToken.Type == TokenType.OpenBrace)
+                return false;
+
+            for (int i = 1; i < tokens.Count; i++)
+            {
+                //не должно идти 2 операции подряд (кроме отрицания) +
+                Token previousToken = tokens[i - 1];
+                Token followingToken = tokens[i];
+                if (previousToken.Type == TokenType.Operation
+                    && followingToken.Type == TokenType.Operation
+                    && operationOperandsCount.Any(n => n.Key == followingToken.Identifier && n.Value == 2))
+                    return false;
+
+                //после открывыющей скобки не должно быть бинарной операйции +
+                //перед закрывающей скобкой не должно быть операции +
+                if (previousToken.Type == TokenType.OpenBrace
+                    && followingToken.Type == TokenType.Operation
+                    && operationOperandsCount.Any(n => n.Key == followingToken.Identifier && n.Value == 2)
+                    || previousToken.Type == TokenType.CloseBrace && followingToken.Type == TokenType.Operation)
+                    return false;
+            }
+
+            //проверка парных скобок +
+            List<Token> braces = tokens.Where(n => n.Type == TokenType.OpenBrace
+                                                        || n.Type == TokenType.CloseBrace).ToList();
+            Stack<Token> braceStack = new Stack<Token>();
+            for (int i = 0; i < braces.Count; i++)
+            {
+                if (braces[i].Type == TokenType.OpenBrace)
+                {
+                    braceStack.Push(braces[i]);
+                }
+                else
+                {
+                    if (braceStack.Count == 0)
+                    {
+                        return false;
+                    }
+                    else
+                    {
+                        braceStack.Pop();
+                    }
+                }
+            }
+            if (braceStack.Count != 0)
+                return false;
+
+            return true;
         }
 
         public static List<Token> GetTokens(string expression)
@@ -139,6 +224,9 @@ namespace MathematicalLogicProcessor
 
         private static List<Token> GetPolishNotation(List<Token> tokens)
         {
+            Dictionary<string, int> operationPriorities = Operation.OperationPriorities;
+            Dictionary<string, int> operationOperandsCount = Operation.OperationOperandsCount;
+
             List<Token> result = new List<Token>();
             Stack<Token> stack = new Stack<Token>();
             for (int i = 0; i < tokens.Count; i++)
@@ -146,6 +234,14 @@ namespace MathematicalLogicProcessor
                 if (tokens[i].Type == TokenType.Variable || tokens[i].Type == TokenType.Const)
                 {
                     result.Add(tokens[i]);
+
+                    continue;
+                }
+
+                if (tokens[i].Type == TokenType.Operation
+                    && operationOperandsCount.Any(n => n.Key == tokens[i].Identifier && n.Value == 1))
+                {
+                    stack.Push(tokens[i]);
 
                     continue;
                 }
@@ -172,7 +268,7 @@ namespace MathematicalLogicProcessor
                 if (tokens[i].Type == TokenType.Operation)
                 {
                     while ((stack.Count != 0) && (stack.Peek().Type == TokenType.Operation)
-                            && (Priorities[tokens[i].Value] <= Priorities[stack.Peek().Value]))
+                            && (operationPriorities[tokens[i].Identifier] <= operationPriorities[stack.Peek().Identifier]))
                     {
                         result.Add(stack.Pop());
                     }
