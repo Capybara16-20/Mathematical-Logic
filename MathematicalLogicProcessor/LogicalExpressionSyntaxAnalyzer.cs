@@ -16,7 +16,7 @@ namespace MathematicalLogicProcessor
         private const string openBracePattern = Token.OpenBracePattern;
         private const string closeBracePattern = Token.CloseBracePattern;
 
-        private string expression;
+        private readonly string expression;
         private readonly List<Token> tokens;
         private readonly List<Operand> variables;
         private readonly List<Operation> operations;
@@ -214,7 +214,7 @@ namespace MathematicalLogicProcessor
             return tokens;
         }
 
-        private static List<Operand> GetVariables(string expression)
+        public static List<Operand> GetVariables(string expression)
         {
             List<Token> tokens = GetTokens(expression);
             List<Token> variableTokens = tokens.Where(n => n.Type == TokenType.Variable)
@@ -227,7 +227,7 @@ namespace MathematicalLogicProcessor
             return variables;
         }
 
-        private static List<Operation> GetOperations(string expression)
+        public static List<Operation> GetOperations(string expression)
         {
             List<Token> tokens = GetTokens(expression);
             List<Token> operationTokens = tokens.Where(n => n.Type == TokenType.Operation)
