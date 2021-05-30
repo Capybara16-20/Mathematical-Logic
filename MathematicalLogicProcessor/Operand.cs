@@ -1,8 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MathematicalLogicProcessor
 {
@@ -15,7 +11,7 @@ namespace MathematicalLogicProcessor
 
         public Operand(string identifier, TokenType type) : base(identifier, type)
         {
-            if (type != TokenType.Variable || type != TokenType.Const)
+            if (type != TokenType.Variable && type != TokenType.Const)
                 throw new ArgumentException(nameof(type));
 
             if (type == TokenType.Const)

@@ -13,14 +13,14 @@ namespace MathematicalLogicProcessor
         private const string variablePattern = Operand.VariablePattern;
         private const string constPattern = Operand.ConstPattern;
         private const string operationPattern = Operation.OperationPattern;
-        private const string openBracePattern = @"\(";
-        private const string closeBracePattern = @"\)";
+        private const string openBracePattern = Token.OpenBracePattern;
+        private const string closeBracePattern = Token.CloseBracePattern;
 
         private string expression;
-        private List<Token> tokens;
-        private List<Operand> variables;
-        private List<Operation> operations;
-        private List<Token> polishNotation;
+        private readonly List<Token> tokens;
+        private readonly List<Operand> variables;
+        private readonly List<Operation> operations;
+        private readonly List<Token> polishNotation;
 
         public string Expression { get { return expression; } }
         public List<Token> Tokens { get { return tokens; } }
@@ -34,12 +34,9 @@ namespace MathematicalLogicProcessor
             if (CheckExpression(expression))
             {
                 this.expression = expression;
-                /*variables = tokens.Where(n => n.Type == TokenType.Variable)
-                                  .DistinctBy(n => n.Identifier).OrderBy(n => n.Identifier).ToList();
-                operations = tokens.Where(n => n.Type == TokenType.Operation)
-                                  .DistinctBy(n => n.Identifier).ToList();*/
+                variables = GetVariables(expression);
+                operations = GetOperations(expression);
                 polishNotation = GetPolishNotation(tokens);
-
             }
             else
             {
@@ -49,16 +46,13 @@ namespace MathematicalLogicProcessor
 
         private static List<Token> ParseExpression(ref string expression)
         {
-            Regex variableRegex = new Regex(variablePattern, RegexOptions.IgnoreCase);
-            Regex constRegex = new Regex(constPattern, RegexOptions.IgnoreCase);
-
             List<char> openBracesTypes = new List<char> { '[', '{' };
             List<char> closeBracesTypes = new List<char> { ']', '}' };
 
-            //удалить пробелы +
+            //удалить пробелы
             expression = Regex.Replace(expression, @"\s+", "");
 
-            //заменить скобки на круглые +
+            //заменить скобки на круглые
             List<char> symbols = expression.ToList();
             for (int i = 0; i < symbols.Count; i++)
             {
@@ -75,7 +69,7 @@ namespace MathematicalLogicProcessor
             //
             //
 
-            //добавить произведение, если идут два операнда подряд (переменная/константа) +
+            //добавить произведение, если идут два операнда подряд (переменная/константа)
             List<Token> tokens = GetTokens(expression);
             List<int> indexesToAdd = new List<int>();
             int shift = 0;
@@ -105,15 +99,10 @@ namespace MathematicalLogicProcessor
 
         private static bool CheckExpression(string expression)
         {
-            Dictionary<string, int> operationOperandsCount = Operation.OperationOperandsCount;
+            Dictionary<string, int> operationOperandsCount = Operation.OperandsCount;
 
             List<Token> tokens = GetTokens(expression);
 
-            //отдельные числа отличные от 0 и 1 +
-            if (tokens.Count != expression.Length)
-                return false;
-
-            //не должно начинаться с оператора (кроме отрицания), с закрывающей скобки +
             Token firstToken = tokens.First();
             if (firstToken.Type == TokenType.Operation
                     && operationOperandsCount.Any(n => n.Key == firstToken.Identifier && n.Value == 2)
@@ -126,7 +115,6 @@ namespace MathematicalLogicProcessor
 
             for (int i = 1; i < tokens.Count; i++)
             {
-                //не должно идти 2 операции подряд (кроме отрицания) +
                 Token previousToken = tokens[i - 1];
                 Token followingToken = tokens[i];
                 if (previousToken.Type == TokenType.Operation
@@ -134,8 +122,6 @@ namespace MathematicalLogicProcessor
                     && operationOperandsCount.Any(n => n.Key == followingToken.Identifier && n.Value == 2))
                     return false;
 
-                //после открывыющей скобки не должно быть бинарной операйции +
-                //перед закрывающей скобкой не должно быть операции +
                 if (previousToken.Type == TokenType.OpenBrace
                     && followingToken.Type == TokenType.Operation
                     && operationOperandsCount.Any(n => n.Key == followingToken.Identifier && n.Value == 2)
@@ -143,7 +129,6 @@ namespace MathematicalLogicProcessor
                     return false;
             }
 
-            //проверка парных скобок +
             List<Token> braces = tokens.Where(n => n.Type == TokenType.OpenBrace
                                                         || n.Type == TokenType.CloseBrace).ToList();
             Stack<Token> braceStack = new Stack<Token>();
@@ -168,6 +153,13 @@ namespace MathematicalLogicProcessor
             if (braceStack.Count != 0)
                 return false;
 
+            //не должно начинаться с оператора (кроме отрицания), с закрывающей скобки +
+            //не должно идти 2 операции подряд (кроме отрицания) +
+            //после открывыющей скобки не должно быть бинарной операйции +
+            //перед закрывающей скобкой не должно быть операции +
+            //проверка парных скобок
+            //отдельные числа отличные от 0 и 1 +
+
             return true;
         }
 
@@ -177,7 +169,7 @@ namespace MathematicalLogicProcessor
             Regex operationRegex = new Regex(operationPattern, RegexOptions.IgnoreCase);
             Regex openBraceRegex = new Regex(openBracePattern, RegexOptions.IgnoreCase);
             Regex closeBraceRegex = new Regex(closeBracePattern, RegexOptions.IgnoreCase);
-            Regex constRegex = new Regex(constPattern, RegexOptions.IgnoreCase);
+            Regex constRegex = new Regex(constPattern);
 
             List<Token> tokens = new List<Token>();
             MatchCollection tokenMatches = Regex.Matches(expression, tokenPattern, RegexOptions.IgnoreCase);
@@ -222,10 +214,36 @@ namespace MathematicalLogicProcessor
             return tokens;
         }
 
+        private static List<Operand> GetVariables(string expression)
+        {
+            List<Token> tokens = GetTokens(expression);
+            List<Token> variableTokens = tokens.Where(n => n.Type == TokenType.Variable)
+                                  .DistinctBy(n => n.Identifier).OrderBy(n => n.Identifier).ToList();
+
+            List<Operand> variables = new List<Operand>();
+            foreach (Token token in variableTokens)
+                variables.Add(new Operand(token.Identifier, token.Type));
+
+            return variables;
+        }
+
+        private static List<Operation> GetOperations(string expression)
+        {
+            List<Token> tokens = GetTokens(expression);
+            List<Token> operationTokens = tokens.Where(n => n.Type == TokenType.Operation)
+                                  .DistinctBy(n => n.Identifier).ToList();
+
+            List<Operation> operations = new List<Operation>();
+            foreach (Token token in operationTokens)
+                operations.Add(new Operation(token.Identifier, token.Type));
+
+            return operations;
+        }
+
         private static List<Token> GetPolishNotation(List<Token> tokens)
         {
-            Dictionary<string, int> operationPriorities = Operation.OperationPriorities;
-            Dictionary<string, int> operationOperandsCount = Operation.OperationOperandsCount;
+            Dictionary<string, int> operationPriorities = Operation.Priorities;
+            Dictionary<string, int> operationOperandsCount = Operation.OperandsCount;
 
             List<Token> result = new List<Token>();
             Stack<Token> stack = new Stack<Token>();
@@ -234,7 +252,6 @@ namespace MathematicalLogicProcessor
                 if (tokens[i].Type == TokenType.Variable || tokens[i].Type == TokenType.Const)
                 {
                     result.Add(tokens[i]);
-
                     continue;
                 }
 
@@ -242,14 +259,12 @@ namespace MathematicalLogicProcessor
                     && operationOperandsCount.Any(n => n.Key == tokens[i].Identifier && n.Value == 1))
                 {
                     stack.Push(tokens[i]);
-
                     continue;
                 }
 
                 if (tokens[i].Type == TokenType.OpenBrace)
                 {
                     stack.Push(tokens[i]);
-
                     continue;
                 }
 
@@ -261,7 +276,6 @@ namespace MathematicalLogicProcessor
                     }
 
                     stack.Pop();
-
                     continue;
                 }
 
@@ -274,15 +288,12 @@ namespace MathematicalLogicProcessor
                     }
 
                     stack.Push(tokens[i]);
-
                     continue;
                 }
             }
 
             while (stack.Count != 0)
-            {
                 result.Add(stack.Pop());
-            }
 
             return result;
         }

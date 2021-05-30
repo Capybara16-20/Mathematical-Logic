@@ -7,7 +7,19 @@ namespace MathematicalLogicProcessor
     {
         public const string OperationPattern = @"¬|\&|\+|\^|→|←|↔|↓";
 
-        public static Dictionary<string, int> OperationPriorities = new Dictionary<string, int>
+        public static Dictionary<string, string> Operations = new Dictionary<string, string>
+        {
+            {"NOT", "¬"},
+            {"AND", "&"},
+            {"OR", "+"},
+            {"XOR", "^"},
+            {"x", "→"},
+            {"y", "←"},
+            {"XNOR", "↔"},
+            {"z", "↓"}
+        };
+
+        public static Dictionary<string, int> Priorities = new Dictionary<string, int>
         {
             {"¬", 6},
             {"&", 5},
@@ -19,7 +31,7 @@ namespace MathematicalLogicProcessor
             {"↓", 1}
         };
 
-        public static Dictionary<string, int> OperationOperandsCount = new Dictionary<string, int>
+        public static Dictionary<string, int> OperandsCount = new Dictionary<string, int>
         {
             {"¬", 1},
             {"&", 2},
