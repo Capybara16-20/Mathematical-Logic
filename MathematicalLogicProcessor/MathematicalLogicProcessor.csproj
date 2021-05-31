@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\LinqExtention\LinqExtention.csproj" />
+    <ProjectReference Include="..\TwoDimensionalArray\TwoDimensionalArray.csproj" />
   </ItemGroup>
 
 </Project>
