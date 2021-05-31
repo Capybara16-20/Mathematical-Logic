@@ -57,10 +57,10 @@ namespace MathematicalLogicProcessor
             for (int i = 0; i < symbols.Count; i++)
             {
                 if (openBracesTypes.Contains(symbols[i]))
-                    symbols[i] = '(';
+                    symbols[i] = char.Parse(Token.OpenBrace);
 
                 if (closeBracesTypes.Contains(symbols[i]))
-                    symbols[i] = ')';
+                    symbols[i] = char.Parse(Token.CloseBrace);
             }
             expression = new string(symbols.ToArray());
 

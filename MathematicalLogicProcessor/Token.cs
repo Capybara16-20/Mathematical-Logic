@@ -5,6 +5,8 @@
         public const string TokenPattern = @"\(|\)|[A-Z][1-9]*[0-9]*|¬|\&|\+|\^|→|←|↔|↓|\||(?<=\W)1|(?<=\W)0";
         public const string OpenBracePattern = @"\(";
         public const string CloseBracePattern = @"\)";
+        public const string OpenBrace = "(";
+        public const string CloseBrace = ")";
 
         protected string identifier;
         protected TokenType type;
