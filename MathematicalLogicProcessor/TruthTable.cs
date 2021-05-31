@@ -105,14 +105,18 @@ namespace MathematicalLogicProcessor
 
         private int GetFunctionNumber(bool[] functionVector)
         {
+            int length = functionVector.Length;
+            bool[] reversedVector = new bool[length];
+            Array.Copy(functionVector, reversedVector, length);
+            Array.Reverse(reversedVector);
+
             StringBuilder sb = new StringBuilder();
-            foreach (bool value in functionVector)
+            foreach (bool value in reversedVector)
             {
                 sb.Append(value ? 1.ToString() : 0.ToString());
             }
-            string vector = sb.ToString();
 
-            return Convert.ToInt32(vector, binaryBase);
+            return Convert.ToInt32(sb.ToString(), binaryBase);
         }
 
         private int GetVariablesCount(int vectorLength)
