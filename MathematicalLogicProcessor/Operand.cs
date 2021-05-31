@@ -9,6 +9,23 @@ namespace MathematicalLogicProcessor
 
         public bool Value { get; set; }
 
+        public Operand(Token token) : base(token.Identifier, token.Type) 
+        {
+            if (token.Type != TokenType.Variable && token.Type != TokenType.Const)
+                throw new ArgumentException(nameof(type));
+
+            if (token.Type == TokenType.Const)
+                Value = identifier == "1";
+        }
+
+        public Operand(string identifier, TokenType type, bool value) : base(identifier, type)
+        {
+            if (type != TokenType.Variable)
+                throw new ArgumentException(nameof(type));
+
+            Value = value;
+        }
+
         public Operand(string identifier, TokenType type) : base(identifier, type)
         {
             if (type != TokenType.Variable && type != TokenType.Const)

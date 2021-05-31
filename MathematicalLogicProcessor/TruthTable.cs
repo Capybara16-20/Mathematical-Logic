@@ -27,6 +27,7 @@ namespace MathematicalLogicProcessor
             headers = GetHeaders(polishNotation, variables);
             table = GetTruthTable(variables, polishNotation);
             functionVector = GetFunctionVector(table);
+            functionNumber = GetFunctionNumber(functionVector);
         }
 
         public TruthTable(bool[] functionVector)
@@ -134,11 +135,6 @@ namespace MathematicalLogicProcessor
             return variables;
         }
 
-        private int GetLinesCount(int variablesCount)
-        {
-            return (int)Math.Pow(binaryBase, variablesCount);
-        }
-
         private List<List<Token>> GetHeaders(List<Operand> variables)
         {
             List<List<Token>> headers = new List<List<Token>>();
@@ -227,14 +223,7 @@ namespace MathematicalLogicProcessor
         {
             int linesCount = functionVector.Length;
             bool[,] table = new bool[linesCount, variables.Count + 1];
-            for (int i = 0; i < linesCount; i++)
-            {
-                string line = Convert.ToString(i, binaryBase).PadLeft(variables.Count, '0');
-                for (int j = 0; j < variables.Count; j++)
-                {
-                    table[i, j] = line[j] == '1';
-                }
-            }
+            FillTruthTable(table, linesCount);
 
             int lastColumnIndex = variables.Count;
             for (int i = 0; i < linesCount; i++)
@@ -245,8 +234,70 @@ namespace MathematicalLogicProcessor
 
         private bool[,] GetTruthTable(List<Operand> variables, List<Token> polishNotation)
         {
+            Dictionary<string, Delegate> operations = Operation.Operations;
+            Dictionary<string, int> operationOperandsCount = Operation.OperandsCount;
+
             int linesCount = GetLinesCount(variables.Count);
-            bool[,] table = new bool[linesCount, polishNotation.Count];
+            bool[,] table = new bool[linesCount, headers.Count];
+            FillTruthTable(table, linesCount);
+
+            for (int i = 0; i < linesCount; i++)
+            {
+                int index = variables.Count;
+                Stack<Operand> stack = new Stack<Operand>();
+                for (int j = 0; j < polishNotation.Count; j++)
+                {
+                    if (polishNotation[j].Type == TokenType.Variable)
+                    {
+                        Operand operand = new Operand(polishNotation[j]);
+                        int operandIndex = variables.IndexOf(operand);
+                        operand.Value = table[i, operandIndex];
+                        stack.Push(operand);
+                    }
+                    else if (polishNotation[j].Type == TokenType.Const)
+                    {
+                        Operand operand = new Operand(polishNotation[j]);
+                        stack.Push(operand);
+                    }
+                    else
+                    {
+                        if (operationOperandsCount.Any(n => n.Key == polishNotation[j].Identifier
+                            && n.Value == 1))
+                        {
+                            Operand operand = stack.Pop();
+                            Delegate Calculate = operations[polishNotation[j].Identifier];
+                            bool result = (bool)Calculate.DynamicInvoke(operand.Value);
+
+                            table[i, index] = result;
+
+                            Operand newOperand = new Operand("temp", TokenType.Variable, result);
+                            stack.Push(newOperand);
+
+                            index++;
+                        }
+                        else
+                        {
+                            Operand operand2 = stack.Pop();
+                            Operand operand1 = stack.Pop();
+                            Delegate Calculate = operations[polishNotation[j].Identifier];
+                            bool result = (bool)Calculate.DynamicInvoke(operand1.Value, operand2.Value);
+
+                            table[i, index] = result;
+
+                            Operand newOperand = new Operand("temp", TokenType.Variable, result);
+                            stack.Push(newOperand);
+
+                            index++;
+                        }
+                    }
+                }
+            }
+
+            return table;
+        }
+
+        private void FillTruthTable(bool[,] table, int linesCount)
+        {
             for (int i = 0; i < linesCount; i++)
             {
                 string line = Convert.ToString(i, binaryBase).PadLeft(variables.Count, '0');
@@ -255,10 +306,11 @@ namespace MathematicalLogicProcessor
                     table[i, j] = line[j] == '1';
                 }
             }
+        }
 
-            ///
-
-            return table;
+        private int GetLinesCount(int variablesCount)
+        {
+            return (int)Math.Pow(binaryBase, variablesCount);
         }
 
         public bool this[int i, int j]
