@@ -87,7 +87,7 @@ namespace MathematicalLogicProcessor
             }
 
             foreach (int index in indexesToAdd)
-                tokens.Insert(index, new Token("&", TokenType.Operation));
+                tokens.Insert(index, new Token(Operation.And, TokenType.Operation));
 
             StringBuilder sb = new StringBuilder();
             foreach (Token token in tokens)
