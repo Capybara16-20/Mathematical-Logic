@@ -213,11 +213,11 @@ namespace MathematicalLogicProcessor
             return headers;
         }
 
-        private List<Token> EncloseInBraces(List<Token> operand)
+        private List<Token> EncloseInBraces(List<Token> tokens)
         {
             List<Token> newOperand = new List<Token>();
             newOperand.Add(new Token("(", TokenType.OpenBrace));
-            newOperand.AddRange(operand);
+            newOperand.AddRange(tokens);
             newOperand.Add(new Token(")", TokenType.CloseBrace));
 
             return newOperand;
@@ -319,7 +319,26 @@ namespace MathematicalLogicProcessor
 
         public bool this[int i, int j]
         {
-            get { return table[i, j]; }
+            get 
+            {
+                if (i >= table.GetRowsCount())
+                    throw new IndexOutOfRangeException(nameof(i));
+
+                if (j >= table.GetRowsCount())
+                    throw new IndexOutOfRangeException(nameof(j));
+
+                return table[i, j]; 
+            }
+        }
+
+        public int GetRowsCount()
+        {
+            return table.GetRowsCount();
+        }
+
+        public int GetColumnsCount()
+        {
+            return table.GetColumnsCount();
         }
     }
 }
