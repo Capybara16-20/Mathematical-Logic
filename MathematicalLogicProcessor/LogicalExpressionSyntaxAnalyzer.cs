@@ -44,7 +44,7 @@ namespace MathematicalLogicProcessor
             }
         }
 
-        private static List<Token> ParseExpression(ref string expression)
+        public static List<Token> ParseExpression(ref string expression)
         {
             List<char> openBracesTypes = new List<char> { '[', '{' };
             List<char> closeBracesTypes = new List<char> { ']', '}' };
@@ -124,8 +124,7 @@ namespace MathematicalLogicProcessor
 
                 if (previousToken.Type == TokenType.OpenBrace
                     && followingToken.Type == TokenType.Operation
-                    && operationOperandsCount.Any(n => n.Key == followingToken.Identifier && n.Value == 2)
-                    || previousToken.Type == TokenType.CloseBrace && followingToken.Type == TokenType.Operation)
+                    && operationOperandsCount.Any(n => n.Key == followingToken.Identifier && n.Value == 2))
                     return false;
             }
 
@@ -240,7 +239,7 @@ namespace MathematicalLogicProcessor
             return operations;
         }
 
-        private static List<Token> GetPolishNotation(List<Token> tokens)
+        public static List<Token> GetPolishNotation(List<Token> tokens)
         {
             Dictionary<string, int> operationPriorities = Operation.Priorities;
             Dictionary<string, int> operationOperandsCount = Operation.OperandsCount;
