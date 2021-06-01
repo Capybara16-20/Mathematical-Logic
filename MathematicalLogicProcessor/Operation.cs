@@ -1,8 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 
+[assembly: InternalsVisibleTo("MathematicalLogicProcessorTests")]
 namespace MathematicalLogicProcessor
 {
+    
     public class Operation : Token
     {
         public const string OperationPattern = @"¬|\&|\+|\^|→|←|↔|↓|\|";
@@ -18,41 +21,41 @@ namespace MathematicalLogicProcessor
 
         public static Dictionary<string, Delegate> Operations = new Dictionary<string, Delegate>
         {
-            {"¬", new Func<bool, bool>(NOT)},
-            {"&", new Func<bool, bool, bool>(AND)},
-            {"+", new Func<bool, bool, bool>(OR)},
-            {"^", new Func<bool, bool, bool>(XOR)},
-            {"→", new Func<bool, bool, bool>(IMPL)},
-            {"←", new Func<bool, bool, bool>(ReIMPL)},
-            {"↔", new Func<bool, bool, bool>(XNOR)},
-            {"↓", new Func<bool, bool, bool>(NOR)},
-            {"|", new Func<bool, bool, bool>(NAND)}
+            {Not, new Func<bool, bool>(NOT)},
+            {And, new Func<bool, bool, bool>(AND)},
+            {Or, new Func<bool, bool, bool>(OR)},
+            {Xor, new Func<bool, bool, bool>(XOR)},
+            {Implication, new Func<bool, bool, bool>(IMPL)},
+            {ReverseImplication, new Func<bool, bool, bool>(ReIMPL)},
+            {Xnor, new Func<bool, bool, bool>(XNOR)},
+            {Nor, new Func<bool, bool, bool>(NOR)},
+            {Nand, new Func<bool, bool, bool>(NAND)}
         };
 
         public static Dictionary<string, int> Priorities = new Dictionary<string, int>
         {
-            {"¬", 4},
-            {"&", 3},
-            {"+", 2},
-            {"^", 2},
-            {"→", 1},
-            {"←", 1},
-            {"↔", 1},
-            {"↓", 1},
-            {"|", 1}
+            {Not, 4},
+            {And, 3},
+            {Or, 2},
+            {Xor, 2},
+            {Implication, 1},
+            {ReverseImplication, 1},
+            {Xnor, 1},
+            {Nor, 1},
+            {Nand, 1}
         };
 
         public static Dictionary<string, int> OperandsCount = new Dictionary<string, int>
         {
-            {"¬", 1},
-            {"&", 2},
-            {"+", 2},
-            {"^", 2},
-            {"→", 2},
-            {"←", 2},
-            {"↔", 2},
-            {"↓", 2},
-            {"|", 2}
+            {Not, 1},
+            {And, 2},
+            {Or, 2},
+            {Xor, 2},
+            {Implication, 2},
+            {ReverseImplication, 2},
+            {Xnor, 2},
+            {Nor, 2},
+            {Nand, 2}
         };
 
         public Operation(string identifier, TokenType type) : base(identifier, type)
@@ -61,47 +64,47 @@ namespace MathematicalLogicProcessor
                 throw new ArgumentException(nameof(type));
         }
 
-        private static bool NOT(bool a)
+        internal static bool NOT(bool a)
         {
             return !a;
         }
 
-        private static bool AND(bool a, bool b)
+        internal static bool AND(bool a, bool b)
         {
             return a & b;
         }
 
-        private static bool OR(bool a, bool b)
+        internal static bool OR(bool a, bool b)
         {
             return a | b;
         }
 
-        private static bool XOR(bool a, bool b)
+        internal static bool XOR(bool a, bool b)
         {
             return a & !b | !a & b;
         }
 
-        private static bool IMPL(bool a, bool b)
+        internal static bool IMPL(bool a, bool b)
         {
             return !a | b;
         }
 
-        private static bool ReIMPL(bool a, bool b)
+        internal static bool ReIMPL(bool a, bool b)
         {
             return a | !b;
         }
 
-        private static bool XNOR(bool a, bool b)
+        internal static bool XNOR(bool a, bool b)
         {
             return a & b | !a & !b;
         }
 
-        private static bool NOR(bool a, bool b)
+        internal static bool NOR(bool a, bool b)
         {
             return !(a | b);
         }
 
-        private static bool NAND(bool a, bool b)
+        internal static bool NAND(bool a, bool b)
         {
             return !(a & b);
         }
