@@ -151,7 +151,6 @@ namespace MathematicalLogicProcessor
 
         private List<List<Token>> GetHeaders(List<Token> polishNotation, List<Operand> variables)
         {
-            Dictionary<string, int> operationPriorities = Operation.Priorities;
             Dictionary<string, int> operationOperandsCount = Operation.OperandsCount;
 
             List<List<Token>> headers = new List<List<Token>>();
@@ -174,7 +173,7 @@ namespace MathematicalLogicProcessor
                         && n.Value == 1))
                     {
                         List<Token> operand = stack.Pop();
-                        if (operand.Count > 1)
+                        if (IsNeedBraces(operand, polishNotation[i]))
                             operand = EncloseInBraces(operand);
 
                         List<Token> newOperand = new List<Token> { polishNotation[i] };
@@ -188,14 +187,9 @@ namespace MathematicalLogicProcessor
                         List<Token> operand2 = stack.Pop();
                         List<Token> operand1 = stack.Pop();
 
-                        if (operand1.Any(n => n.Type == TokenType.Operation 
-                            && operationPriorities[n.Identifier] 
-                            < operationPriorities[polishNotation[i].Identifier]))
+                        if (IsNeedBraces(operand1, polishNotation[i]))
                             operand1 = EncloseInBraces(operand1);
-
-                        if (operand2.Any(n => n.Type == TokenType.Operation
-                            && operationPriorities[n.Identifier]
-                            < operationPriorities[polishNotation[i].Identifier]))
+                        if (IsNeedBraces(operand2, polishNotation[i]))
                             operand2 = EncloseInBraces(operand2);
 
                         List<Token> newOperand = new List<Token>();
@@ -211,6 +205,46 @@ namespace MathematicalLogicProcessor
 
             headers.AddRange(temp);
             return headers;
+        }
+
+        private bool IsNeedBraces(List<Token> tokens, Token operation)
+        {
+            Dictionary<string, int> operationPriorities = Operation.Priorities;
+
+            if (tokens.Count == 1)
+                return false;
+
+            if (!tokens.Any(n => n.Type == TokenType.Operation 
+                && operationPriorities[n.Identifier] 
+                < operationPriorities[operation.Identifier]))
+            {
+                return false;
+            }
+            else
+            {
+                Stack<Token> stack = new Stack<Token>();
+                for (int i = 0; i < tokens.Count; i++)
+                {
+                    if (tokens[i].Type == TokenType.OpenBrace)
+                        stack.Push(tokens[i]);
+
+                    if (tokens[i].Type == TokenType.CloseBrace)
+                        stack.Pop();
+
+                    if (tokens[i].Type == TokenType.Operation)
+                    {
+                        if (stack.Count == 0 && tokens[i].Type == TokenType.Operation 
+                            && operationPriorities[tokens[i].Identifier] 
+                            < operationPriorities[operation.Identifier])
+                        {
+                            return true;
+                        }
+                    }
+
+                }
+            }
+
+            return false;
         }
 
         private List<Token> EncloseInBraces(List<Token> tokens)
@@ -324,8 +358,8 @@ namespace MathematicalLogicProcessor
                 if (i >= table.GetRowsCount())
                     throw new IndexOutOfRangeException(nameof(i));
 
-                if (j >= table.GetRowsCount())
-                    throw new IndexOutOfRangeException(nameof(j));
+                if (j >= table.GetColumnsCount())
+                    throw new IndexOutOfRangeException(nameof(j) + " " + j);
 
                 return table[i, j]; 
             }
