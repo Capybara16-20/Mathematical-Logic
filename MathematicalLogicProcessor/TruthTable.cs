@@ -157,104 +157,10 @@ namespace MathematicalLogicProcessor
             foreach (Operand variable in variables)
                 headers.Add(new List<Token> { variable });
 
-            List<List<Token>> temp = new List<List<Token>>();
-            Stack<List<Token>> stack = new Stack<List<Token>>();
-            for (int i = 0; i < polishNotation.Count; i++)
-            {
-                if (polishNotation[i].Type == TokenType.Variable
-                    || polishNotation[i].Type == TokenType.Const)
-                {
-                    List<Token> newOperand = new List<Token> { polishNotation[i] };
-                    stack.Push(newOperand);
-                }
-                else
-                {
-                    if (operationOperandsCount.Any(n => n.Key == polishNotation[i].Identifier
-                        && n.Value == 1))
-                    {
-                        List<Token> operand = stack.Pop();
-                        if (IsNeedBraces(operand, polishNotation[i]))
-                            operand = EncloseInBraces(operand);
+            List<List<Token>> expressions = LogicalExpressionSyntaxAnalyzer.GetAllExpressions(polishNotation);
+            headers.AddRange(expressions);
 
-                        List<Token> newOperand = new List<Token> { polishNotation[i] };
-                        newOperand.AddRange(operand);
-
-                        temp.Add(newOperand);
-                        stack.Push(newOperand);
-                    }
-                    else
-                    {
-                        List<Token> operand2 = stack.Pop();
-                        List<Token> operand1 = stack.Pop();
-
-                        if (IsNeedBraces(operand1, polishNotation[i]))
-                            operand1 = EncloseInBraces(operand1);
-                        if (IsNeedBraces(operand2, polishNotation[i]))
-                            operand2 = EncloseInBraces(operand2);
-
-                        List<Token> newOperand = new List<Token>();
-                        newOperand.AddRange(operand1);
-                        newOperand.Add(polishNotation[i]);
-                        newOperand.AddRange(operand2);
-
-                        temp.Add(newOperand);
-                        stack.Push(newOperand);
-                    }
-                }
-            }
-
-            headers.AddRange(temp);
             return headers;
-        }
-
-        private bool IsNeedBraces(List<Token> tokens, Token operation)
-        {
-            Dictionary<string, int> operationPriorities = Operation.Priorities;
-
-            if (tokens.Count == 1)
-                return false;
-
-            if (!tokens.Any(n => n.Type == TokenType.Operation 
-                && operationPriorities[n.Identifier] 
-                < operationPriorities[operation.Identifier]))
-            {
-                return false;
-            }
-            else
-            {
-                Stack<Token> stack = new Stack<Token>();
-                for (int i = 0; i < tokens.Count; i++)
-                {
-                    if (tokens[i].Type == TokenType.OpenBrace)
-                        stack.Push(tokens[i]);
-
-                    if (tokens[i].Type == TokenType.CloseBrace)
-                        stack.Pop();
-
-                    if (tokens[i].Type == TokenType.Operation)
-                    {
-                        if (stack.Count == 0 && tokens[i].Type == TokenType.Operation 
-                            && operationPriorities[tokens[i].Identifier] 
-                            < operationPriorities[operation.Identifier])
-                        {
-                            return true;
-                        }
-                    }
-
-                }
-            }
-
-            return false;
-        }
-
-        private List<Token> EncloseInBraces(List<Token> tokens)
-        {
-            List<Token> newOperand = new List<Token>();
-            newOperand.Add(new Token("(", TokenType.OpenBrace));
-            newOperand.AddRange(tokens);
-            newOperand.Add(new Token(")", TokenType.CloseBrace));
-
-            return newOperand;
         }
 
         private bool[,] GetTruthTable(List<Operand> variables, bool[] functionVector)

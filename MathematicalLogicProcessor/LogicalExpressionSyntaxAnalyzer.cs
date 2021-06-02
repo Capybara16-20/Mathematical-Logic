@@ -119,10 +119,8 @@ namespace MathematicalLogicProcessor
             foreach (int index in indexesToAdd)
                 tokens.Insert(index, new Token(Operation.And, TokenType.Operation));
 
-            //удалить скобки, если внутри них нет бинарных операций и других скобок
-            //
-            //
-            //
+            //удалить лишние скобки
+            RemoveExtraBraces(tokens);
 
             StringBuilder sb = new StringBuilder();
             foreach (Token token in tokens)
@@ -132,7 +130,119 @@ namespace MathematicalLogicProcessor
             return tokens;
         }
 
-        private static bool CheckExpression(string expression)
+        public static List<Token> RemoveExtraBraces(List<Token> tokens)
+        {
+            List<Token> polishNotation = GetPolishNotation(tokens);
+            List<List<Token>> expressions = GetAllExpressions(polishNotation);
+
+            return expressions.Last();
+        }
+
+        public static List<List<Token>> GetAllExpressions(List<Token> polishNotation)
+        {
+            Dictionary<string, int> operationOperandsCount = Operation.OperandsCount;
+            Dictionary<string, int> operationPriorities = Operation.Priorities;
+
+            List<List<Token>> expressions = new List<List<Token>>();
+            Stack<List<Token>> stack = new Stack<List<Token>>();
+            for (int i = 0; i < polishNotation.Count; i++)
+            {
+                if (polishNotation[i].Type == TokenType.Variable
+                    || polishNotation[i].Type == TokenType.Const)
+                {
+                    List<Token> newOperand = new List<Token> { polishNotation[i] };
+                    stack.Push(newOperand);
+                }
+                else
+                {
+                    if (operationOperandsCount.Any(n => n.Key == polishNotation[i].Identifier
+                        && n.Value == 1))
+                    {
+                        List<Token> operand = stack.Pop();
+                        if (IsNeedBraces(operand, polishNotation[i]))
+                            operand = EncloseInBraces(operand);
+
+                        List<Token> newOperand = new List<Token> { polishNotation[i] };
+                        newOperand.AddRange(operand);
+
+                        expressions.Add(newOperand);
+                        stack.Push(newOperand);
+                    }
+                    else
+                    {
+                        List<Token> operand2 = stack.Pop();
+                        List<Token> operand1 = stack.Pop();
+
+                        if (IsNeedBraces(operand1, polishNotation[i]))
+                            operand1 = EncloseInBraces(operand1);
+                        if (IsNeedBraces(operand2, polishNotation[i]))
+                            operand2 = EncloseInBraces(operand2);
+
+                        List<Token> newOperand = new List<Token>();
+                        newOperand.AddRange(operand1);
+                        newOperand.Add(polishNotation[i]);
+                        newOperand.AddRange(operand2);
+
+                        expressions.Add(newOperand);
+                        stack.Push(newOperand);
+                    }
+                }
+            }
+
+            return expressions;
+        }
+
+        private static bool IsNeedBraces(List<Token> tokens, Token operation)
+        {
+            Dictionary<string, int> operationPriorities = Operation.Priorities;
+
+            if (tokens.Count == 1)
+                return false;
+
+            if (!tokens.Any(n => n.Type == TokenType.Operation
+                && operationPriorities[n.Identifier]
+                < operationPriorities[operation.Identifier]))
+            {
+                return false;
+            }
+            else
+            {
+                Stack<Token> stack = new Stack<Token>();
+                for (int i = 0; i < tokens.Count; i++)
+                {
+                    if (tokens[i].Type == TokenType.OpenBrace)
+                        stack.Push(tokens[i]);
+
+                    if (tokens[i].Type == TokenType.CloseBrace)
+                        stack.Pop();
+
+                    if (tokens[i].Type == TokenType.Operation)
+                    {
+                        if (stack.Count == 0 && tokens[i].Type == TokenType.Operation
+                            && operationPriorities[tokens[i].Identifier]
+                            < operationPriorities[operation.Identifier])
+                        {
+                            return true;
+                        }
+                    }
+
+                }
+            }
+
+            return false;
+        }
+
+        private static List<Token> EncloseInBraces(List<Token> tokens)
+        {
+            List<Token> newOperand = new List<Token>();
+            newOperand.Add(new Token("(", TokenType.OpenBrace));
+            newOperand.AddRange(tokens);
+            newOperand.Add(new Token(")", TokenType.CloseBrace));
+
+            return newOperand;
+        }
+
+        public static bool CheckExpression(string expression)
         {
             Dictionary<string, int> operationOperandsCount = Operation.OperandsCount;
 
