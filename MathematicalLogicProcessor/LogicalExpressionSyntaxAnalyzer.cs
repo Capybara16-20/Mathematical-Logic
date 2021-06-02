@@ -46,6 +46,8 @@ namespace MathematicalLogicProcessor
 
         public static List<Token> ParseExpression(ref string expression)
         {
+            Dictionary<string, int> operationOperandsCount = Operation.OperandsCount;
+
             List<char> openBracesTypes = new List<char> { '[', '{' };
             List<char> closeBracesTypes = new List<char> { ']', '}' };
 
@@ -64,12 +66,13 @@ namespace MathematicalLogicProcessor
             }
             expression = new string(symbols.ToArray());
 
-            //удалить скобки, если внутри них нет бинарных операций и других скобок
-            //
-            //
-            //
-
-            //добавить произведение, если идут два операнда подряд (переменная/константа)
+            //добавить произведение, если
+            //# идут два операнда подряд
+            //# операнд после закрывающей скобки
+            //# операнд перед открывающей скобкой
+            //# унарная операция после операнда
+            //# унарная операция после закрывающей скобки
+            //# закрывающая скобка после открывающей
             List<Token> tokens = GetTokens(expression);
             List<int> indexesToAdd = new List<int>();
             int shift = 0;
@@ -78,8 +81,35 @@ namespace MathematicalLogicProcessor
                 Token previousToken = tokens[i - 1];
                 Token followingToken = tokens[i];
 
-                if ((previousToken.Type == TokenType.Variable || previousToken.Type == TokenType.Const)
-                    && (followingToken.Type == TokenType.Variable || followingToken.Type == TokenType.Const))
+                bool isTwoOperandsInRow = (previousToken.Type == TokenType.Variable 
+                                            || previousToken.Type == TokenType.Const)
+                                            && (followingToken.Type == TokenType.Variable 
+                                            || followingToken.Type == TokenType.Const);
+
+                bool isOperandAfterCloseBrace = (previousToken.Type == TokenType.CloseBrace)
+                                            && (followingToken.Type == TokenType.Variable 
+                                            || followingToken.Type == TokenType.Const);
+
+                bool isOperandBeforeOpenBrace = (previousToken.Type == TokenType.Variable 
+                                            || previousToken.Type == TokenType.Const)
+                                            && (followingToken.Type == TokenType.OpenBrace);
+
+                bool isUnaryOperationAfterOperand = (previousToken.Type == TokenType.Variable
+                                            || previousToken.Type == TokenType.Const)
+                                            && (followingToken.Type == TokenType.Operation
+                                            && operationOperandsCount.Any(n => n.Key == followingToken.Identifier 
+                                                && n.Value == 1));
+
+                bool isUnaryOperationAfterCloseBrace = (previousToken.Type == TokenType.CloseBrace)
+                                            && (followingToken.Type == TokenType.Operation
+                                            && operationOperandsCount.Any(n => n.Key == followingToken.Identifier
+                                                && n.Value == 1));
+
+                bool isOpenBraceAfterCloseBrace = (previousToken.Type == TokenType.CloseBrace)
+                                            && (followingToken.Type == TokenType.OpenBrace);
+
+                if (isTwoOperandsInRow || isOperandAfterCloseBrace || isOperandBeforeOpenBrace 
+                    || isUnaryOperationAfterOperand || isUnaryOperationAfterCloseBrace || isOpenBraceAfterCloseBrace)
                 {
                     indexesToAdd.Add(i + shift);
                     shift++;
@@ -88,6 +118,11 @@ namespace MathematicalLogicProcessor
 
             foreach (int index in indexesToAdd)
                 tokens.Insert(index, new Token(Operation.And, TokenType.Operation));
+
+            //удалить скобки, если внутри них нет бинарных операций и других скобок
+            //
+            //
+            //
 
             StringBuilder sb = new StringBuilder();
             foreach (Token token in tokens)
@@ -103,16 +138,21 @@ namespace MathematicalLogicProcessor
 
             List<Token> tokens = GetTokens(expression);
 
+            //первый токен не может быть бинарной операцией или закрывающей скобкой
             Token firstToken = tokens.First();
             if (firstToken.Type == TokenType.Operation
                     && operationOperandsCount.Any(n => n.Key == firstToken.Identifier && n.Value == 2)
                     || firstToken.Type == TokenType.CloseBrace)
                 return false;
 
+            //последний токен не может быть операцией или открывающей скобкой
             Token lastToken = tokens.Last();
             if (lastToken.Type == TokenType.Operation || lastToken.Type == TokenType.OpenBrace)
                 return false;
 
+            //за операцией не может идти бинарной операции
+            //за открывающей скобкой не может идти банарная операция
+            //перед закрывающей скобкой не может идти банарная операция
             for (int i = 1; i < tokens.Count; i++)
             {
                 Token previousToken = tokens[i - 1];
@@ -126,8 +166,13 @@ namespace MathematicalLogicProcessor
                     && followingToken.Type == TokenType.Operation
                     && operationOperandsCount.Any(n => n.Key == followingToken.Identifier && n.Value == 2))
                     return false;
+
+                if (previousToken.Type == TokenType.Operation
+                    && followingToken.Type == TokenType.CloseBrace)
+                    return false;
             }
 
+            //проверка парных скобок
             List<Token> braces = tokens.Where(n => n.Type == TokenType.OpenBrace
                                                         || n.Type == TokenType.CloseBrace).ToList();
             Stack<Token> braceStack = new Stack<Token>();
@@ -151,13 +196,6 @@ namespace MathematicalLogicProcessor
             }
             if (braceStack.Count != 0)
                 return false;
-
-            //не должно начинаться с оператора (кроме отрицания), с закрывающей скобки +
-            //не должно идти 2 операции подряд (кроме отрицания) +
-            //после открывыющей скобки не должно быть бинарной операйции +
-            //перед закрывающей скобкой не должно быть операции +
-            //проверка парных скобок
-            //отдельные числа отличные от 0 и 1 +
 
             return true;
         }
