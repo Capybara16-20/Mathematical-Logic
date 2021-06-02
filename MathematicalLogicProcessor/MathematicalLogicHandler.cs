@@ -58,7 +58,7 @@ namespace MathematicalLogicProcessor
                         }
                     }
 
-                    AddSeparatorsBetweenTokens(disjunction, new Token(Operation.And, TokenType.Operation));
+                    AddSeparatorsBetweenVariables(disjunction, new Token(Operation.And, TokenType.Operation));
                     temp.Add(disjunction);
                 }
             }
@@ -101,7 +101,7 @@ namespace MathematicalLogicProcessor
                         }
                     }
 
-                    AddSeparatorsBetweenTokens(disjunction, new Token(Operation.Or, TokenType.Operation));
+                    AddSeparatorsBetweenVariables(disjunction, new Token(Operation.Or, TokenType.Operation));
                     temp.Add(disjunction);
                 }
             }
@@ -118,7 +118,7 @@ namespace MathematicalLogicProcessor
             return pcnf;
         }
 
-        private void AddSeparatorsBetweenTokens(List<Token> tokens, Token separator)
+        private void AddSeparatorsBetweenVariables(List<Token> tokens, Token separator)
         {
             for (int i = 1; i < tokens.Count; i++)
                 if (tokens[i - 1].Type == TokenType.Variable)
