@@ -22,7 +22,11 @@
 
         public override bool Equals(object obj)
         {
-            if (obj is Token token)
+            if (obj == null)
+            {
+                return false;
+            }
+            else if (obj is Token token)
             {
                 return token.Identifier == identifier && token.Type == type;
             }
