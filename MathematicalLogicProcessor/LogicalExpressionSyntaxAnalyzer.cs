@@ -30,12 +30,13 @@ namespace MathematicalLogicProcessor
 
         public LogicalExpressionSyntaxAnalyzer(string expression)
         {
-            tokens = ParseExpression(ref expression);
             if (CheckExpression(expression))
             {
+                tokens = ParseExpression(ref expression);
                 this.expression = expression;
                 variables = GetVariables(expression);
                 operations = GetOperations(expression);
+                RemoveExtraBraces(tokens);
                 polishNotation = GetPolishNotation(tokens);
             }
             else
@@ -46,8 +47,6 @@ namespace MathematicalLogicProcessor
 
         public static List<Token> ParseExpression(ref string expression)
         {
-            Dictionary<string, int> operationOperandsCount = Operation.OperandsCount;
-
             List<char> openBracesTypes = new List<char> { '[', '{' };
             List<char> closeBracesTypes = new List<char> { ']', '}' };
 
@@ -74,6 +73,20 @@ namespace MathematicalLogicProcessor
             //# унарная операция после закрывающей скобки
             //# закрывающая скобка после открывающей
             List<Token> tokens = GetTokens(expression);
+            tokens = AddSeparator(tokens, new Token(Operation.And, TokenType.Operation));
+
+            StringBuilder sb = new StringBuilder();
+            foreach (Token token in tokens)
+                sb.Append(token.Identifier);
+
+            expression = sb.ToString();
+            return tokens;
+        }
+
+        public static List<Token> AddSeparator(List<Token> tokens, Token separator)
+        {
+            Dictionary<string, int> operationOperandsCount = Operation.OperandsCount;
+
             List<int> indexesToAdd = new List<int>();
             int shift = 0;
             for (int i = 1; i < tokens.Count; i++)
@@ -81,34 +94,34 @@ namespace MathematicalLogicProcessor
                 Token previousToken = tokens[i - 1];
                 Token followingToken = tokens[i];
 
-                bool isTwoOperandsInRow = (previousToken.Type == TokenType.Variable 
+                bool isTwoOperandsInRow = (previousToken.Type == TokenType.Variable
                                             || previousToken.Type == TokenType.Const)
-                                            && (followingToken.Type == TokenType.Variable 
+                                            && (followingToken.Type == TokenType.Variable
                                             || followingToken.Type == TokenType.Const);
 
                 bool isOperandAfterCloseBrace = (previousToken.Type == TokenType.CloseBrace)
-                                            && (followingToken.Type == TokenType.Variable 
+                                            && (followingToken.Type == TokenType.Variable
                                             || followingToken.Type == TokenType.Const);
 
-                bool isOperandBeforeOpenBrace = (previousToken.Type == TokenType.Variable 
+                bool isOperandBeforeOpenBrace = (previousToken.Type == TokenType.Variable
                                             || previousToken.Type == TokenType.Const)
                                             && (followingToken.Type == TokenType.OpenBrace);
 
                 bool isUnaryOperationAfterOperand = (previousToken.Type == TokenType.Variable
                                             || previousToken.Type == TokenType.Const)
-                                            && (followingToken.Type == TokenType.Operation
-                                            && operationOperandsCount.Any(n => n.Key == followingToken.Identifier 
-                                                && n.Value == 1));
+                                            && followingToken.Type == TokenType.Operation
+                                            && operationOperandsCount.Any(n => n.Key == followingToken.Identifier
+                                                && n.Value == 1);
 
                 bool isUnaryOperationAfterCloseBrace = (previousToken.Type == TokenType.CloseBrace)
-                                            && (followingToken.Type == TokenType.Operation
+                                            && followingToken.Type == TokenType.Operation
                                             && operationOperandsCount.Any(n => n.Key == followingToken.Identifier
-                                                && n.Value == 1));
+                                                && n.Value == 1);
 
                 bool isOpenBraceAfterCloseBrace = (previousToken.Type == TokenType.CloseBrace)
                                             && (followingToken.Type == TokenType.OpenBrace);
 
-                if (isTwoOperandsInRow || isOperandAfterCloseBrace || isOperandBeforeOpenBrace 
+                if (isTwoOperandsInRow || isOperandAfterCloseBrace || isOperandBeforeOpenBrace
                     || isUnaryOperationAfterOperand || isUnaryOperationAfterCloseBrace || isOpenBraceAfterCloseBrace)
                 {
                     indexesToAdd.Add(i + shift);
@@ -117,16 +130,8 @@ namespace MathematicalLogicProcessor
             }
 
             foreach (int index in indexesToAdd)
-                tokens.Insert(index, new Token(Operation.And, TokenType.Operation));
+                tokens.Insert(index, separator);
 
-            //удалить лишние скобки
-            RemoveExtraBraces(tokens);
-
-            StringBuilder sb = new StringBuilder();
-            foreach (Token token in tokens)
-                sb.Append(token.Identifier);
-
-            expression = sb.ToString();
             return tokens;
         }
 
@@ -192,7 +197,7 @@ namespace MathematicalLogicProcessor
             return expressions;
         }
 
-        private static bool IsNeedBraces(List<Token> tokens, Token operation)
+        public static bool IsNeedBraces(List<Token> tokens, Token operation)
         {
             Dictionary<string, int> operationPriorities = Operation.Priorities;
 
@@ -232,7 +237,7 @@ namespace MathematicalLogicProcessor
             return false;
         }
 
-        private static List<Token> EncloseInBraces(List<Token> tokens)
+        public static List<Token> EncloseInBraces(List<Token> tokens)
         {
             List<Token> newOperand = new List<Token>();
             newOperand.Add(new Token("(", TokenType.OpenBrace));
