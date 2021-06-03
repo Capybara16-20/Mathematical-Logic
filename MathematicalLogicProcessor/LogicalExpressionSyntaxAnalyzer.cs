@@ -321,10 +321,10 @@ namespace MathematicalLogicProcessor
         public static List<Token> GetTokens(string expression)
         {
             Regex variableRegex = new Regex(variablePattern, RegexOptions.IgnoreCase);
+            Regex constRegex = new Regex(constPattern);
             Regex operationRegex = new Regex(operationPattern, RegexOptions.IgnoreCase);
             Regex openBraceRegex = new Regex(openBracePattern, RegexOptions.IgnoreCase);
             Regex closeBraceRegex = new Regex(closeBracePattern, RegexOptions.IgnoreCase);
-            Regex constRegex = new Regex(constPattern);
 
             List<Token> tokens = new List<Token>();
             MatchCollection tokenMatches = Regex.Matches(expression, tokenPattern, RegexOptions.IgnoreCase);
@@ -334,6 +334,13 @@ namespace MathematicalLogicProcessor
                 if (temp.Success)
                 {
                     tokens.Add(new Token(temp.Value, TokenType.Variable));
+                    continue;
+                }
+
+                temp = constRegex.Match(match.Value);
+                if (temp.Success)
+                {
+                    tokens.Add(new Token(temp.Value, TokenType.Const));
                     continue;
                 }
 
@@ -355,13 +362,6 @@ namespace MathematicalLogicProcessor
                 if (temp.Success)
                 {
                     tokens.Add(new Token(temp.Value, TokenType.CloseBrace));
-                    continue;
-                }
-
-                temp = constRegex.Match(match.Value);
-                if (temp.Success)
-                {
-                    tokens.Add(new Token(temp.Value, TokenType.Const));
                     continue;
                 }
             }
