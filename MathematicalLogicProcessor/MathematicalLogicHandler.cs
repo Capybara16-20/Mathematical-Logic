@@ -305,11 +305,13 @@ namespace MathematicalLogicProcessor
                 if (polishNotation[operandIndex].Type == TokenType.Operation)
                 {
                     if (!polishNotation[operandIndex].Equals(operation))
+                    {
                         result.Add(polishNotation[operandIndex]);
 
-                    if (operandsCount.Any(n => n.Key == polishNotation[operandIndex].Identifier
-                        && n.Value == 2))
-                        tokensToGet++;
+                        if (operandsCount.Any(n => n.Key == polishNotation[operandIndex].Identifier
+                            && n.Value == 2))
+                            tokensToGet++;
+                    }
 
                     expressionLength++;
                 }
@@ -343,7 +345,7 @@ namespace MathematicalLogicProcessor
                     if (operandsCount.Any(n => n.Key == polishNotation[index].Identifier
                         && n.Value == 2))
                     {
-                        if (polishNotation[index].Identifier == operation.Identifier)
+                        if (polishNotation[index].Equals(operation))
                             count++;
 
                         tokensToGet++;
