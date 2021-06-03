@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("MathematicalLogicProcessorTests")]
 namespace MathematicalLogicProcessor
 {
-    
     public class Operation : Token
     {
         public const string OperationPattern = @"¬|\&|\+|\^|→|←|↔|↓|\|";
@@ -32,15 +31,25 @@ namespace MathematicalLogicProcessor
             {Nand, new Func<bool, bool, bool>(NAND)}
         };
 
+        public static Dictionary<string, Delegate> Transformations = new Dictionary<string, Delegate>
+        {
+            {Xor, new Func<List<Token>, List<Token>, List<Token>>(TransformXOR)},
+            {Implication, new Func<List<Token>, List<Token>, List<Token>>(TransformIMPL)},
+            {ReverseImplication, new Func<List<Token>, List<Token>, List<Token>>(TransformReIMPL)},
+            {Xnor, new Func<List<Token>, List<Token>, List<Token>>(TransformXNOR)},
+            {Nor, new Func<List<Token>, List<Token>, List<Token>>(TransformNOR)},
+            {Nand, new Func<List<Token>, List<Token>, List<Token>>(TransformNAND)}
+        };
+
         public static Dictionary<string, int> Priorities = new Dictionary<string, int>
         {
-            {Not, 4},
-            {And, 3},
-            {Or, 2},
-            {Xor, 2},
-            {Implication, 1},
-            {ReverseImplication, 1},
-            {Xnor, 1},
+            {Not, 7},
+            {And, 6},
+            {Or, 5},
+            {Xor, 4},
+            {Implication, 3},
+            {ReverseImplication, 3},
+            {Xnor, 2},
             {Nor, 1},
             {Nand, 1}
         };
@@ -84,9 +93,52 @@ namespace MathematicalLogicProcessor
             return a & !b | !a & b;
         }
 
+        internal static List<Token> TransformXOR(List<Token> a, List<Token> b)
+        {
+            Token and = new Token(And, TokenType.Operation);
+            Token or = new Token(Or, TokenType.Operation);
+            Token not = new Token(Not, TokenType.Operation);
+
+            bool isASeveralTokens = a.Count > 1;
+            bool isBSeveralTokens = b.Count > 1;
+            bool isANeedBraces = LogicalExpressionSyntaxAnalyzer.IsNeedBraces(a, and);
+            bool isBNeedBraces = LogicalExpressionSyntaxAnalyzer.IsNeedBraces(b, and);
+
+            List<Token> result = new List<Token>();
+            result.AddRange(isANeedBraces ? LogicalExpressionSyntaxAnalyzer.EncloseInBraces(a) : a);
+            result.Add(and);
+            result.Add(not);
+            result.AddRange(isBSeveralTokens ? LogicalExpressionSyntaxAnalyzer.EncloseInBraces(b) : b);
+            result.Add(or);
+            result.Add(not);
+            result.AddRange(isASeveralTokens ? LogicalExpressionSyntaxAnalyzer.EncloseInBraces(a) : a);
+            result.Add(and);
+            result.AddRange(isBNeedBraces ? LogicalExpressionSyntaxAnalyzer.EncloseInBraces(b) : b);
+
+            return result;
+        }
+
         internal static bool IMPL(bool a, bool b)
         {
             return !a | b;
+        }
+
+        internal static List<Token> TransformIMPL(List<Token> a, List<Token> b)
+        {
+            Token or = new Token(Or, TokenType.Operation);
+            Token not = new Token(Not, TokenType.Operation);
+
+            bool isASeveralTokens = a.Count > 1;
+            bool isBNeedBraces = LogicalExpressionSyntaxAnalyzer.IsNeedBraces(b, or);
+
+
+            List<Token> result = new List<Token>();
+            result.Add(not);
+            result.AddRange(isASeveralTokens ? LogicalExpressionSyntaxAnalyzer.EncloseInBraces(a) : a);
+            result.Add(or);
+            result.AddRange(isBNeedBraces ? LogicalExpressionSyntaxAnalyzer.EncloseInBraces(b) : b);
+
+            return result;
         }
 
         internal static bool ReIMPL(bool a, bool b)
@@ -94,9 +146,52 @@ namespace MathematicalLogicProcessor
             return a | !b;
         }
 
+        internal static List<Token> TransformReIMPL(List<Token> a, List<Token> b)
+        {
+            Token or = new Token(Or, TokenType.Operation);
+            Token not = new Token(Not, TokenType.Operation);
+
+            bool isBSeveralTokens = b.Count > 1;
+            bool isANeedBraces = LogicalExpressionSyntaxAnalyzer.IsNeedBraces(a, or);
+
+
+            List<Token> result = new List<Token>();
+            result.AddRange(isANeedBraces ? LogicalExpressionSyntaxAnalyzer.EncloseInBraces(a) : a);
+            result.Add(or);
+            result.Add(not);
+            result.AddRange(isBSeveralTokens ? LogicalExpressionSyntaxAnalyzer.EncloseInBraces(b) : b);
+
+            return result;
+        }
+
         internal static bool XNOR(bool a, bool b)
         {
             return a & b | !a & !b;
+        }
+
+        internal static List<Token> TransformXNOR(List<Token> a, List<Token> b)
+        {
+            Token and = new Token(And, TokenType.Operation);
+            Token or = new Token(Or, TokenType.Operation);
+            Token not = new Token(Not, TokenType.Operation);
+
+            bool isASeveralTokens = a.Count > 1;
+            bool isBSeveralTokens = b.Count > 1;
+            bool isANeedBraces = LogicalExpressionSyntaxAnalyzer.IsNeedBraces(a, and);
+            bool isBNeedBraces = LogicalExpressionSyntaxAnalyzer.IsNeedBraces(b, and);
+
+            List<Token> result = new List<Token>();
+            result.AddRange(isANeedBraces ? LogicalExpressionSyntaxAnalyzer.EncloseInBraces(a) : a);
+            result.Add(and);
+            result.AddRange(isBNeedBraces ? LogicalExpressionSyntaxAnalyzer.EncloseInBraces(b) : b);
+            result.Add(or);
+            result.Add(not);
+            result.AddRange(isASeveralTokens ? LogicalExpressionSyntaxAnalyzer.EncloseInBraces(a) : a);
+            result.Add(and);
+            result.Add(not);
+            result.AddRange(isBSeveralTokens ? LogicalExpressionSyntaxAnalyzer.EncloseInBraces(b) : b);
+
+            return result;
         }
 
         internal static bool NOR(bool a, bool b)
@@ -104,9 +199,51 @@ namespace MathematicalLogicProcessor
             return !(a | b);
         }
 
+        internal static List<Token> TransformNOR(List<Token> a, List<Token> b)
+        {
+            Token or = new Token(Or, TokenType.Operation);
+            Token not = new Token(Not, TokenType.Operation);
+            Token openBrace = new Token(OpenBrace, TokenType.OpenBrace);
+            Token closeBrace = new Token(CloseBrace, TokenType.CloseBrace);
+
+            bool isANeedBraces = LogicalExpressionSyntaxAnalyzer.IsNeedBraces(a, or);
+            bool isBNeedBraces = LogicalExpressionSyntaxAnalyzer.IsNeedBraces(b, or);
+
+            List<Token> result = new List<Token>();
+            result.Add(not);
+            result.Add(openBrace);
+            result.AddRange(isANeedBraces ? LogicalExpressionSyntaxAnalyzer.EncloseInBraces(a) : a);
+            result.Add(or);
+            result.AddRange(isBNeedBraces ? LogicalExpressionSyntaxAnalyzer.EncloseInBraces(b) : b);
+            result.Add(closeBrace);
+
+            return result;
+        }
+
         internal static bool NAND(bool a, bool b)
         {
             return !(a & b);
+        }
+
+        internal static List<Token> TransformNAND(List<Token> a, List<Token> b)
+        {
+            Token and = new Token(And, TokenType.Operation);
+            Token not = new Token(Not, TokenType.Operation);
+            Token openBrace = new Token(OpenBrace, TokenType.OpenBrace);
+            Token closeBrace = new Token(CloseBrace, TokenType.CloseBrace);
+
+            bool isANeedBraces = LogicalExpressionSyntaxAnalyzer.IsNeedBraces(a, and);
+            bool isBNeedBraces = LogicalExpressionSyntaxAnalyzer.IsNeedBraces(b, and);
+
+            List<Token> result = new List<Token>();
+            result.Add(not);
+            result.Add(openBrace);
+            result.AddRange(isANeedBraces ? LogicalExpressionSyntaxAnalyzer.EncloseInBraces(a) : a);
+            result.Add(and);
+            result.AddRange(isBNeedBraces ? LogicalExpressionSyntaxAnalyzer.EncloseInBraces(b) : b);
+            result.Add(closeBrace);
+
+            return result;
         }
 
         public override bool Equals(object obj)
