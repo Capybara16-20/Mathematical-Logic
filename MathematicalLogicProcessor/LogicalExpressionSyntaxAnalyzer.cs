@@ -239,10 +239,13 @@ namespace MathematicalLogicProcessor
 
         public static List<Token> EncloseInBraces(List<Token> tokens)
         {
+            Token openBrace = new Token(Token.OpenBrace, TokenType.OpenBrace);
+            Token closeBrace = new Token(Token.CloseBrace, TokenType.CloseBrace);
+
             List<Token> newOperand = new List<Token>();
-            newOperand.Add(new Token("(", TokenType.OpenBrace));
+            newOperand.Add(openBrace);
             newOperand.AddRange(tokens);
-            newOperand.Add(new Token(")", TokenType.CloseBrace));
+            newOperand.Add(closeBrace);
 
             return newOperand;
         }
