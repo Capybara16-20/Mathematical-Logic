@@ -6,6 +6,8 @@ namespace MathematicalLogicProcessor
     {
         public const string VariablePattern = @"[A-Z][1-9]*[0-9]*";
         public const string ConstPattern = @"1|0";
+        public const string One = "1";
+        public const string Zero = "0";
 
         public bool Value { get; set; }
 
