@@ -6,6 +6,12 @@ namespace MathematicalLogicProcessor
 {
     public class MathematicalLogicHandler
     {
+        const string transformationsMessage = "Применяем эквивалентные преобразования.";
+        const string deMorgansLawsMessage = "Применяем законы де Моргана.";
+        const string removeTwiceNoMessage = "Удаляем двойные отрицания.";
+        const string distributivityIdempotencyAbsorptionMessage = 
+            "Применяем законы дистрибутивности, идемпотентности и поглощения.";
+
         private TruthTable truthTable;
 
         public TruthTable TruthTable { get { return truthTable; } }
@@ -118,53 +124,100 @@ namespace MathematicalLogicProcessor
             return pcnf;
         }
 
-        public List<Token> GetDNF(List<Token> tokens)
+        public Dictionary<List<List<Token>>, string> GetDNF(List<Token> tokens)
         {
-            List<Token> dnf = new List<Token>();
+            Dictionary<List<List<Token>>, string> dnf = new Dictionary<List<List<Token>>, string>();
 
-            Console.WriteLine("эквивалентные преобразования");
             //эквивалентные преобразования
+            List<List<Token>> changes = new List<List<Token>> { tokens };
             bool isTransformationApplicable = true;
             while (isTransformationApplicable)
+            {
                 tokens = ApplyTransform(tokens, ref isTransformationApplicable);
+                
+                if (isTransformationApplicable)
+                    changes.Add(tokens);
+            }
 
-            Console.WriteLine("законы де Моргана");
+            if (changes.Count > 1)
+                dnf.Add(changes, transformationsMessage);
+
             //законы де Моргана
+            changes = new List<List<Token>> { tokens };
             bool isDeMorganApplicable = true;
             while (isDeMorganApplicable)
-                tokens = ApplyDeMorgansLaw(tokens, ref isDeMorganApplicable);
-
-            Console.WriteLine("двойное отрицание");
-            //двойное отрицание
-            RemoveTwiceNo(tokens);
-
-
-            foreach (Token token in tokens)
             {
-                Console.Write(token.Identifier);
+                tokens = ApplyDeMorgansLaws(tokens, ref isDeMorganApplicable);
+
+                if (isDeMorganApplicable)
+                    changes.Add(tokens);
             }
-            Console.WriteLine();
-            Console.WriteLine();
-            Console.WriteLine("==========");
-            Console.WriteLine();
-            
-            //дистрибутивность, идемпотентность, поглощение 
 
-            return tokens;
-        }
-
-        public List<Token> GetCNF(List<Token> tokens)
-        {
-            List<Token> cnf = new List<Token>();
-
-            //эквивалентные преобразования
-
-            //де Морган
-            //hundredInts.RemoveRange(20, 31).InsertRange(20, thirtyOneInts);
+            if (changes.Count > 1)
+                dnf.Add(changes, deMorgansLawsMessage);
 
             //двойное отрицание
+            changes = new List<List<Token>> { tokens };
+            bool isChanged;
+            tokens = RemoveTwiceNo(tokens, out isChanged);
+            
+            if (isChanged)
+            {
+                changes.Add(tokens);
+                dnf.Add(changes, removeTwiceNoMessage);
+            }
 
             //дистрибутивность, идемпотентность, поглощение
+            
+
+            return dnf;
+        }
+
+        public Dictionary<List<List<Token>>, string> GetCNF(List<Token> tokens)
+        {
+            Dictionary<List<List<Token>>, string> cnf = new Dictionary<List<List<Token>>, string>();
+
+            //эквивалентные преобразования
+            List<List<Token>> changes = new List<List<Token>> { tokens };
+            bool isTransformationApplicable = true;
+            while (isTransformationApplicable)
+            {
+                tokens = ApplyTransform(tokens, ref isTransformationApplicable);
+
+                if (isTransformationApplicable)
+                    changes.Add(tokens);
+            }
+
+            if (changes.Count > 1)
+                cnf.Add(changes, transformationsMessage);
+
+            //законы де Моргана
+            changes = new List<List<Token>> { tokens };
+            bool isDeMorganApplicable = true;
+            while (isDeMorganApplicable)
+            {
+                tokens = ApplyDeMorgansLaws(tokens, ref isDeMorganApplicable);
+
+                if (isDeMorganApplicable)
+                    changes.Add(tokens);
+            }
+
+            if (changes.Count > 1)
+                cnf.Add(changes, deMorgansLawsMessage);
+
+            //двойное отрицание
+            changes = new List<List<Token>> { tokens };
+            bool isChanged;
+            tokens = RemoveTwiceNo(tokens, out isChanged);
+
+            if (isChanged)
+            {
+                changes.Add(tokens);
+                cnf.Add(changes, removeTwiceNoMessage);
+            }
+
+            //дистрибутивность, идемпотентность, поглощение
+
 
             return cnf;
         }
@@ -173,13 +226,15 @@ namespace MathematicalLogicProcessor
         {
             Dictionary<string, int> priorities = Operation.Priorities;
             int orPriority = priorities[Operation.Or];
-            List<Token> polishNotation = LogicalExpressionSyntaxAnalyzer.GetPolishNotation(tokens);
+
+            List<Token> result = tokens.GetRange(0, tokens.Count);
+            List<Token> polishNotation = LogicalExpressionSyntaxAnalyzer.GetPolishNotation(result);
             if (!polishNotation.Any(n => n.Type == TokenType.Operation
                 && priorities[n.Identifier] < orPriority))
             {
                 isChanged = false;
 
-                return tokens;
+                return result;
             }
 
             int index = polishNotation.Select((n, i) => new { Item = n, Index = i })
@@ -191,8 +246,8 @@ namespace MathematicalLogicProcessor
             index--;
 
             int temp = 0;
-            List<Token> rightOperandPolish = GetOperand(polishNotation, ref index, ref temp);
-            List<Token> leftOperandPolish = GetOperand(polishNotation, ref index, ref temp);
+            List<Token> rightOperandPolish = GetOperandPolish(polishNotation, ref index, ref temp);
+            List<Token> leftOperandPolish = GetOperandPolish(polishNotation, ref index, ref temp);
             int expressionLength = rightOperandPolish.Count + leftOperandPolish.Count + 1;
             polishNotation.RemoveRange(++index, expressionLength);
 
@@ -205,56 +260,52 @@ namespace MathematicalLogicProcessor
             List<Token> rightOperand = (rightOperandPolish.Count > 1) ?
                 LogicalExpressionSyntaxAnalyzer.GetAllExpressions(rightOperandPolish).Last()
                 : rightOperandPolish;
+
             List<Token> transformResult = (List<Token>)Transform.DynamicInvoke(leftOperand, rightOperand);
 
             List<Token> transformPolish = LogicalExpressionSyntaxAnalyzer.GetPolishNotation(transformResult);
 
             polishNotation.InsertRange(index, transformPolish);
-            List<Token> result = LogicalExpressionSyntaxAnalyzer.GetAllExpressions(polishNotation).Last();
+            result = LogicalExpressionSyntaxAnalyzer.GetAllExpressions(polishNotation).Last();
 
-            foreach (Token token in result)
-            {
-                Console.Write(token.Identifier);
-            }
-            Console.WriteLine();
-            Console.WriteLine();
-            Console.WriteLine("==========");
-            Console.WriteLine();
+            bool isTransformNotConstantsApplicable = true;
+            while (isTransformNotConstantsApplicable)
+                result = TransformNotConstants(result, ref isTransformNotConstantsApplicable);
 
             isChanged = true;
             return result;
         }
 
-        private static List<Token> ApplyDeMorgansLaw(List<Token> tokens, ref bool isChanged)
+        private static List<Token> ApplyDeMorgansLaws(List<Token> tokens, ref bool isChanged)
         {
             Token not = new Token(Operation.Not, TokenType.Operation);
             Token and = new Token(Operation.And, TokenType.Operation);
             Token or = new Token(Operation.Or, TokenType.Operation);
 
-            List<Token> polishNotation = LogicalExpressionSyntaxAnalyzer.GetPolishNotation(tokens);
+            List<Token> result = tokens.GetRange(0, tokens.Count);
+            List<Token> polishNotation = LogicalExpressionSyntaxAnalyzer.GetPolishNotation(result);
 
             int index = polishNotation.Select((n, i) => new { Item = n, Index = i })
                                                .Where(n => n.Item.Equals(not)
                                                     && (polishNotation[n.Index - 1].Equals(and)
                                                || polishNotation[n.Index - 1].Equals(or)))
                                                .Select(n => n.Index).FirstOrDefault();
-            
             if (index == 0)
             {
                 isChanged = false;
 
-                return tokens;
+                return result;
             }
 
             index--;
             Token operation = polishNotation[index];
-            int tokensCountToGet = GetTokensCountToGet(polishNotation, index, operation);
+            int tokensCountToGet = GetOperandsCountToGet(polishNotation, index, operation);
             index--;
             List<List<Token>> operandsPolish = new List<List<Token>>();
             int expressionLength = 2;
 
             for (int i = 0; i < tokensCountToGet; i++)
-                operandsPolish.Add(GetOperand(polishNotation, ref index, ref expressionLength, operation));
+                operandsPolish.Add(GetOperandPolish(polishNotation, ref index, ref expressionLength));
             operandsPolish.Reverse();
 
             polishNotation.RemoveRange(++index, expressionLength);
@@ -265,103 +316,21 @@ namespace MathematicalLogicProcessor
                     LogicalExpressionSyntaxAnalyzer.GetAllExpressions(operand).Last()
                     : operand);
 
-            List<Token> transformResult = DeMorgansLaw(operands, operation);
+            List<Token> transformResult = DeMorgansLaws(operands, operation);
             List<Token> transformPolish = LogicalExpressionSyntaxAnalyzer.GetPolishNotation(transformResult);
 
             polishNotation.InsertRange(index, transformPolish);
-            List<Token> result = LogicalExpressionSyntaxAnalyzer.GetAllExpressions(polishNotation).Last();
+            result = LogicalExpressionSyntaxAnalyzer.GetAllExpressions(polishNotation).Last();
 
-            foreach (Token token in result)
-            {
-                Console.Write(token.Identifier);
-            }
-            Console.WriteLine();
-            foreach (Token token in polishNotation)
-            {
-                Console.Write(token.Identifier);
-            }
-            Console.WriteLine();
-            Console.WriteLine();
-            Console.WriteLine("==========");
-            Console.WriteLine();
+            bool isTransformNotConstantsApplicable = true;
+            while (isTransformNotConstantsApplicable)
+                result = TransformNotConstants(result, ref isTransformNotConstantsApplicable);
 
             isChanged = true;
             return result;
         }
 
-        private static List<Token> GetOperand(List<Token> polishNotation, ref int index, 
-            ref int expressionLength, Token operation = null)
-        {
-            Token and = new Token(Operation.And, TokenType.Operation);
-            Token or = new Token(Operation.Or, TokenType.Operation);
-
-            Dictionary<string, int> operandsCount = Operation.OperandsCount;
-
-            int operandIndex = index;
-            List<Token> result = new List<Token>();
-            int tokensToGet = 1;
-            while (tokensToGet != 0)
-            {
-                if (polishNotation[operandIndex].Type == TokenType.Operation)
-                {
-                    if (!polishNotation[operandIndex].Equals(operation))
-                    {
-                        result.Add(polishNotation[operandIndex]);
-
-                        if (operandsCount.Any(n => n.Key == polishNotation[operandIndex].Identifier
-                            && n.Value == 2))
-                            tokensToGet++;
-                    }
-
-                    expressionLength++;
-                }
-                else
-                {
-                    result.Add(polishNotation[operandIndex]);
-                    expressionLength++;
-
-                    tokensToGet--;
-                }
-
-                operandIndex--;
-            }
-            result.Reverse();
-
-            index = operandIndex;
-
-            return result;
-        }
-
-        private static int GetTokensCountToGet(List<Token> polishNotation, int index, Token operation)
-        {
-            Dictionary<string, int> operandsCount = Operation.OperandsCount;
-
-            int count = 1;
-            int tokensToGet = 1;
-            while (tokensToGet != 0)
-            {
-                if (polishNotation[index].Type == TokenType.Operation)
-                {
-                    if (operandsCount.Any(n => n.Key == polishNotation[index].Identifier
-                        && n.Value == 2))
-                    {
-                        if (polishNotation[index].Equals(operation))
-                            count++;
-
-                        tokensToGet++;
-                    }
-                }
-                else
-                {
-                    tokensToGet--;
-                }
-                index--;
-            }
-
-            return count;
-        }
-
-        private static List<Token> DeMorgansLaw(List<List<Token>> operands, Token operation)
+        private static List<Token> DeMorgansLaws(List<List<Token>> operands, Token operation)
         {
             Token and = new Token(Operation.And, TokenType.Operation);
             Token or = new Token(Operation.Or, TokenType.Operation);
@@ -383,18 +352,20 @@ namespace MathematicalLogicProcessor
             return result;
         }
 
-        private static List<Token> RemoveTwiceNo(List<Token> tokens)
+        private static List<Token> RemoveTwiceNo(List<Token> tokens, out bool isChanged)
         {
+            List<Token> result = tokens.GetRange(0, tokens.Count);
+            isChanged = false;
             Token not = new Token(Operation.Not, TokenType.Operation);
             int indexToRemove = 0;
             bool isApplicable = true;
             while (isApplicable)
             {
                 bool whetherToRemove = false;
-                for (int i = 1; i < tokens.Count; i++)
+                for (int i = 1; i < result.Count; i++)
                 {
-                    Token previousToken = tokens[i - 1];
-                    Token followingToken = tokens[i];
+                    Token previousToken = result[i - 1];
+                    Token followingToken = result[i];
 
                     if (previousToken.Equals(not) && followingToken.Equals(not))
                     {
@@ -411,12 +382,148 @@ namespace MathematicalLogicProcessor
 
                 if (whetherToRemove)
                 {
-                    tokens.RemoveAt(indexToRemove);
-                    tokens.RemoveAt(indexToRemove);
+                    result.RemoveAt(indexToRemove);
+                    result.RemoveAt(indexToRemove);
+                    isChanged = true;
                 }
             }
 
-            return tokens;
+            return result;
+        }
+
+        private static List<Token> TransformNotConstants(List<Token> tokens, ref bool isChanged)
+        {
+            Token not = new Token(Operation.Not, TokenType.Operation);
+            Token one = new Token(Operand.One, TokenType.Const);
+            Token zero = new Token(Operand.Zero, TokenType.Const);
+
+            List<Token> polishNotation = LogicalExpressionSyntaxAnalyzer.GetPolishNotation(tokens);
+            int index = polishNotation.Select((n, i) => new { Item = n, Index = i })
+                                               .Where(n => n.Item.Equals(not)
+                                                    && (polishNotation[n.Index - 1].Type == TokenType.Const))
+                                               .Select(n => n.Index).FirstOrDefault();
+            if (index == 0)
+            {
+                isChanged = false;
+
+                return tokens;
+            }
+
+            index--;
+            Token constant = polishNotation[index];
+            polishNotation.RemoveAt(index);
+            polishNotation.RemoveAt(index);
+
+            polishNotation.Insert(index, constant.Identifier == "1" ? zero : one);
+
+            List<Token> result = LogicalExpressionSyntaxAnalyzer.GetAllExpressions(polishNotation).Last();
+            isChanged = true;
+            return result;
+        }
+
+        private static List<Token> ApplyDistributivityIdempotencyAbsorptionLaws(List<Token> tokens, ref bool isChanged)
+        {
+            List<Token> result = tokens.GetRange(0, tokens.Count);
+
+
+
+            return result;
+        }
+
+        private static List<Token> RemoveConstants(List<Token> tokens)
+        {
+            List<Token> result = new List<Token>();
+
+
+            return result;
+        }
+
+        private static List<Token> GetOperandPolish(List<Token> polishNotation, ref int index,
+            ref int expressionLength)
+        {
+            Token and = new Token(Operation.And, TokenType.Operation);
+            Token or = new Token(Operation.Or, TokenType.Operation);
+
+            Dictionary<string, int> operandsCount = Operation.OperandsCount;
+
+            int operandIndex = index;
+            List<Token> result = new List<Token>();
+            int tokensToGet = 1;
+            while (tokensToGet != 0)
+            {
+                if (polishNotation[operandIndex].Type == TokenType.Operation)
+                {
+                    if (operandsCount.Any(n => n.Key == polishNotation[operandIndex].Identifier
+                            && n.Value == 2))
+                        tokensToGet++;
+                }
+                else
+                {
+                    tokensToGet--;
+                }
+
+                result.Add(polishNotation[operandIndex]);
+                expressionLength++;
+                operandIndex--;
+            }
+            result.Reverse();
+
+            index = operandIndex;
+
+            return result;
+        }
+
+        private static int GetOperandsCountToGet(List<Token> polishNotation, int index, Token operation)
+        {
+            Dictionary<string, int> operandsCount = Operation.OperandsCount;
+
+            int count = 1;
+            int tokensToGet = 1;
+            while (tokensToGet != 0)
+            {
+                if (polishNotation[index].Type == TokenType.Operation)
+                {
+                    if (operandsCount.Any(n => n.Key == polishNotation[index].Identifier
+                        && n.Value == 2))
+                    {
+                        if (polishNotation[index].Equals(operation))
+                        {
+                            count++;
+                        }
+                        else
+                        {
+                            int tokensToPass = 1;
+                            while (tokensToPass != 0)
+                            {
+                                if (polishNotation[index].Type == TokenType.Operation)
+                                {
+                                    if (operandsCount.Any(n => n.Key == polishNotation[index].Identifier 
+                                        && n.Value == 2))
+                                    {
+                                        tokensToPass++;
+                                    }
+                                }
+                                else
+                                {
+                                    tokensToPass--;
+                                }
+
+                                index--;
+                            }
+                        }
+
+                        tokensToGet--;
+                    }
+                }
+                else
+                {
+                    tokensToGet--;
+                }
+
+                index--;
+            }
+
+            return count;
         }
     }
 }
