@@ -157,8 +157,12 @@ namespace MathematicalLogicProcessor
             foreach (Operand variable in variables)
                 headers.Add(new List<Token> { variable });
 
-            List<List<Token>> expressions = LogicalExpressionSyntaxAnalyzer.GetAllExpressions(polishNotation);
-            headers.AddRange(expressions);
+            List<List<Token>> expressions;
+            if (polishNotation.Count > 1)
+            {
+                expressions = LogicalExpressionSyntaxAnalyzer.GetAllExpressions(polishNotation);
+                headers.AddRange(expressions);
+            }
 
             return headers;
         }
