@@ -149,6 +149,13 @@ namespace MathematicalLogicProcessor
             Dictionary<string, int> operationPriorities = Operation.Priorities;
 
             List<List<Token>> expressions = new List<List<Token>>();
+            if (polishNotation.Count <= 2)
+            {
+                expressions.Add(polishNotation);
+
+                return expressions;
+            }
+
             Stack<List<Token>> stack = new Stack<List<Token>>();
             for (int i = 0; i < polishNotation.Count; i++)
             {
