@@ -10,6 +10,8 @@ namespace MathematicalLogicProcessor
         const string deMorgansLawsMessage = "Применяем законы де Моргана.";
         const string removeTwiceNoMessage = "Удаляем двойные отрицания.";
         const string distributivityLawMessage = "Применяем закон дистрибутивности.";
+        const string idempotencyLawMessage = "Применяем закон идемпотентности.";
+        const string removeConstantsMessage = "Избавляемся от констант.";
 
         private TruthTable truthTable;
 
@@ -148,6 +150,7 @@ namespace MathematicalLogicProcessor
             {
                 tokens = ApplyDeMorgansLaws(tokens, ref isDeMorganApplicable);
 
+
                 if (isDeMorganApplicable)
                     changes.Add(tokens);
             }
@@ -166,7 +169,7 @@ namespace MathematicalLogicProcessor
                 dnf.Add(changes, removeTwiceNoMessage);
             }
 
-            //дистрибутивность, идемпотентность, поглощение
+            //дистрибутивность
             changes = new List<List<Token>> { tokens };
             bool isDNFDistributivityLawApplicable = true;
             while (isDNFDistributivityLawApplicable)
@@ -179,6 +182,35 @@ namespace MathematicalLogicProcessor
 
             if (changes.Count > 1)
                 dnf.Add(changes, distributivityLawMessage);
+
+            //идемпотентность
+            changes = new List<List<Token>> { tokens };
+            bool isIdempotencyLawApplicable = true;
+            while (isIdempotencyLawApplicable)
+            {
+                tokens = ApplyIdempotencyLaw(tokens, ref isIdempotencyLawApplicable);
+
+                if (isIdempotencyLawApplicable)
+                    changes.Add(tokens);
+            }
+
+            if (changes.Count > 1)
+                dnf.Add(changes, idempotencyLawMessage);
+
+
+            //удаление констант
+            changes = new List<List<Token>> { tokens };
+            bool isRemoveConstantApplicable = true;
+            while (isRemoveConstantApplicable)
+            {
+                tokens = RemoveConstants(tokens, ref isRemoveConstantApplicable);
+
+                if (isRemoveConstantApplicable)
+                    changes.Add(tokens);
+            }
+
+            if (changes.Count > 1)
+                dnf.Add(changes, removeConstantsMessage);
 
             return dnf;
         }
@@ -226,8 +258,47 @@ namespace MathematicalLogicProcessor
                 cnf.Add(changes, removeTwiceNoMessage);
             }
 
-            //дистрибутивность, идемпотентность, поглощение
+            //дистрибутивность
+            changes = new List<List<Token>> { tokens };
+            bool isCNFDistributivityLawApplicable = true;
+            while (isCNFDistributivityLawApplicable)
+            {
+                tokens = ApplyCNFDistributivity(tokens, ref isCNFDistributivityLawApplicable);
 
+                if (isCNFDistributivityLawApplicable)
+                    changes.Add(tokens);
+            }
+
+            if (changes.Count > 1)
+                cnf.Add(changes, distributivityLawMessage);
+
+            //идемпотентность
+            changes = new List<List<Token>> { tokens };
+            bool isIdempotencyLawApplicable = true;
+            while (isIdempotencyLawApplicable)
+            {
+                tokens = ApplyIdempotencyLaw(tokens, ref isIdempotencyLawApplicable);
+
+                if (isIdempotencyLawApplicable)
+                    changes.Add(tokens);
+            }
+
+            if (changes.Count > 1)
+                cnf.Add(changes, idempotencyLawMessage);
+
+            //удаление констант
+            changes = new List<List<Token>> { tokens };
+            bool isRemoveConstantApplicable = true;
+            while (isRemoveConstantApplicable)
+            {
+                tokens = RemoveConstants(tokens, ref isRemoveConstantApplicable);
+
+                if (isRemoveConstantApplicable)
+                    changes.Add(tokens);
+            }
+
+            if (changes.Count > 1)
+                cnf.Add(changes, removeConstantsMessage);
 
             return cnf;
         }
@@ -313,7 +384,7 @@ namespace MathematicalLogicProcessor
 
             List<List<Token>> operandsPolish = GetOperandsPolish(polishNotation, ref index, operation);
 
-            int expressionLength = 2;
+            int expressionLength = operandsPolish.Count;
             foreach (List<Token> operand in operandsPolish)
                 expressionLength += operand.Count;
 
@@ -403,24 +474,21 @@ namespace MathematicalLogicProcessor
 
         private static List<Token> ApplyDNFDistributivityLaw(List<Token> tokens, ref bool isChanged)
         {
-            isChanged = false;
-
             Token and = new Token(Operation.And, TokenType.Operation);
             Token or = new Token(Operation.Or, TokenType.Operation);
 
             List<Token> result = tokens.GetRange(0, tokens.Count);
             List<Token> polishNotation = LogicalExpressionSyntaxAnalyzer.GetPolishNotation(result);
+            
+
 
             for (int i = 0; i < polishNotation.Count; i++)
             {
                 if (polishNotation[i].Equals(and))
                 {
                     int index = i - 1;
-                    Console.WriteLine(index);
                     List<Token> rightOperandPolish = GetOperandPolish(polishNotation, ref index);
-                    Console.WriteLine(index);
                     List<Token> leftOperandPolish = GetOperandPolish(polishNotation, ref index);
-                    Console.WriteLine(index);
                     index++;
 
                     int operandIndex = leftOperandPolish.Count - 1;
@@ -453,19 +521,68 @@ namespace MathematicalLogicProcessor
                         result = LogicalExpressionSyntaxAnalyzer.GetAllExpressions(polishNotation).Last();
 
                         isChanged = true;
-                        break;
+                        return result;
                     }
                 }
             }
 
+            isChanged = false;
             return result;
         }
 
         private static List<Token> ApplyCNFDistributivity(List<Token> tokens, ref bool isChanged)
         {
+            isChanged = false;
+
+            Token and = new Token(Operation.And, TokenType.Operation);
+            Token or = new Token(Operation.Or, TokenType.Operation);
+
             List<Token> result = tokens.GetRange(0, tokens.Count);
+            List<Token> polishNotation = LogicalExpressionSyntaxAnalyzer.GetPolishNotation(result);
 
+            for (int i = 0; i < polishNotation.Count; i++)
+            {
+                if (polishNotation[i].Equals(or))
+                {
+                    int index = i - 1;
+                    List<Token> rightOperandPolish = GetOperandPolish(polishNotation, ref index);
+                    List<Token> leftOperandPolish = GetOperandPolish(polishNotation, ref index);
+                    index++;
 
+                    int operandIndex = leftOperandPolish.Count - 1;
+                    List<List<Token>> leftOperandOperandsPolish = GetOperandsPolish(leftOperandPolish, ref operandIndex, and);
+
+                    operandIndex = rightOperandPolish.Count - 1;
+                    List<List<Token>> rightOperandOperandsPolish = GetOperandsPolish(rightOperandPolish, ref operandIndex, and);
+
+                    if (leftOperandOperandsPolish.Count > 1
+                        || rightOperandOperandsPolish.Count > 1)
+                    {
+                        List<List<Token>> leftOperandOperands = new List<List<Token>>();
+                        foreach (List<Token> operand in leftOperandOperandsPolish)
+                            leftOperandOperands.Add((operand.Count > 1) ?
+                                LogicalExpressionSyntaxAnalyzer.GetAllExpressions(operand).Last()
+                                : operand);
+
+                        List<List<Token>> rightOperandOperands = new List<List<Token>>();
+                        foreach (List<Token> operand in rightOperandOperandsPolish)
+                            rightOperandOperands.Add((operand.Count > 1) ?
+                                LogicalExpressionSyntaxAnalyzer.GetAllExpressions(operand).Last()
+                                : operand);
+
+                        List<Token> newTokens = DistributivityLaw(leftOperandOperands, rightOperandOperands, or);
+                        List<Token> newPolish = LogicalExpressionSyntaxAnalyzer.GetPolishNotation(newTokens);
+
+                        int expressionLength = rightOperandPolish.Count + leftOperandPolish.Count + 1;
+                        polishNotation.RemoveRange(index, expressionLength);
+                        polishNotation.InsertRange(index, newPolish);
+                        result = LogicalExpressionSyntaxAnalyzer.GetAllExpressions(polishNotation).Last();
+
+                        isChanged = true;
+                        break;
+                    }
+                }
+            }
 
             return result;
         }
@@ -492,6 +609,108 @@ namespace MathematicalLogicProcessor
                     ? LogicalExpressionSyntaxAnalyzer.EncloseInBraces(newOperand) : newOperand);
                     result.Add(isAnd ? or : and);
                 }
+            }
+            result.RemoveAt(result.Count - 1);
+
+            return result;
+        }
+
+        public static List<Token> ApplyIdempotencyLaw(List<Token> tokens, ref bool isChanged)
+        {
+            Token and = new Token(Operation.And, TokenType.Operation);
+            Token or = new Token(Operation.Or, TokenType.Operation);
+            Token not = new Token(Operation.Not, TokenType.Operation);
+            Token zero = new Token(Operand.Zero, TokenType.Const);
+            Token one = new Token(Operand.One, TokenType.Const);
+
+            List<Token> result = tokens.GetRange(0, tokens.Count);
+            List<Token> polishNotation = LogicalExpressionSyntaxAnalyzer.GetPolishNotation(result);
+            for (int i = 0; i < polishNotation.Count; i++)
+            {
+                bool isAnd;
+                if ((isAnd = polishNotation[i].Equals(and)) || polishNotation[i].Equals(or))
+                {
+                    int index = i;
+                    List<List<Token>> operandsPolish = GetOperandsPolish(polishNotation, ref index, isAnd ? and : or);
+
+                    int expressionLength = operandsPolish.Count - 1;
+                    foreach (List<Token> operand in operandsPolish)
+                        expressionLength += operand.Count;
+
+                    index++;
+                    for (int j = 0; j < operandsPolish.Count; j++)
+                    {
+                        for (int k = 0; k < j; k++)
+                        {
+                            List<Token> leftOperand = operandsPolish[k].GetRange(0, operandsPolish[k].Count);
+                            List<Token> rightOperand = operandsPolish[j].GetRange(0, operandsPolish[j].Count);
+
+                            if (leftOperand.Count == 1 && leftOperand[0].Type == TokenType.Const
+                                && rightOperand.Count == 1 && rightOperand[0].Type == TokenType.Const)
+                                break;
+
+                            if (AreOperandsEqual(leftOperand, rightOperand))
+                            {
+                                polishNotation.RemoveRange(index, expressionLength);
+                                operandsPolish.RemoveAt(j);
+                                List<List<Token>> operands = new List<List<Token>>();
+                                foreach (List<Token> operand in operandsPolish)
+                                    operands.Add(LogicalExpressionSyntaxAnalyzer.GetAllExpressions(operand).Last());
+                                List<Token> newTokens = AddSeparators(operands, isAnd ? and : or);
+                                List<Token> newPolish = LogicalExpressionSyntaxAnalyzer.GetPolishNotation(newTokens);
+                                polishNotation.InsertRange(index, newPolish);
+                                result = LogicalExpressionSyntaxAnalyzer.GetAllExpressions(polishNotation).Last();
+
+                                isChanged = true;
+                                return result;
+                            }
+                            else
+                            {
+                                int leftLastIndex = leftOperand.Count - 1;
+                                int rightLastIndex = rightOperand.Count - 1;
+                                if (leftLastIndex > 0 && leftOperand[leftLastIndex].Equals(not))
+                                {
+                                    leftOperand.RemoveAt(leftLastIndex);
+                                    if (AreOperandsEqual(leftOperand, rightOperand))
+                                    {
+                                        polishNotation.RemoveRange(index, expressionLength);
+                                        polishNotation.Insert(index, isAnd ? zero : one);
+                                        result = LogicalExpressionSyntaxAnalyzer.GetAllExpressions(polishNotation).Last();
+
+                                        isChanged = true;
+                                        return result;
+                                    }
+                                }
+                                else if (rightLastIndex > 0 && rightOperand[rightLastIndex].Equals(not))
+                                {
+                                    rightOperand.RemoveAt(rightLastIndex);
+                                    if (AreOperandsEqual(leftOperand, rightOperand))
+                                    {
+                                        polishNotation.RemoveRange(index, expressionLength);
+                                        polishNotation.Insert(index, isAnd ? zero : one);
+                                        result = LogicalExpressionSyntaxAnalyzer.GetAllExpressions(polishNotation).Last();
+
+                                        isChanged = true;
+                                        return result;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            isChanged = false;
+            return result;
+        }
+
+        private static List<Token> AddSeparators(List<List<Token>> operands, Token separator)
+        {
+            List<Token> result = new List<Token>();
+            foreach (List<Token> operand in operands)
+            {
+                result.AddRange(operand);
+                result.Add(separator);
             }
             result.RemoveAt(result.Count - 1);
 
@@ -528,11 +747,139 @@ namespace MathematicalLogicProcessor
             return result;
         }
 
-        private static List<Token> RemoveConstants(List<Token> tokens)
+        private static List<Token> RemoveConstants(List<Token> tokens, ref bool isChanged)
         {
-            List<Token> result = new List<Token>();
+            isChanged = false;
 
+            Token and = new Token(Operation.And, TokenType.Operation);
+            Token or = new Token(Operation.Or, TokenType.Operation);
+            Token zero = new Token(Operand.Zero, TokenType.Const);
+            Token one = new Token(Operand.One, TokenType.Const);
 
+            List<Token> result = tokens.GetRange(0, tokens.Count);
+            List<Token> polishNotation = LogicalExpressionSyntaxAnalyzer.GetPolishNotation(result);
+            for (int i = 0; i < polishNotation.Count; i++)
+            {
+                bool isAnd;
+                if ((isAnd = polishNotation[i].Equals(and)) || polishNotation[i].Equals(or))
+                {
+                    int index = i;
+                    List<List<Token>> operandsPolish = GetOperandsPolish(polishNotation, ref index, isAnd ? and : or);
+
+                    int expressionLength = operandsPolish.Count - 1;
+                    foreach (List<Token> operand in operandsPolish)
+                        expressionLength += operand.Count;
+
+                    index++;
+                    for (int j = 0; j < operandsPolish.Count; j++)
+                    {
+                        for (int k = 0; k < j; k++)
+                        {
+                            List<Token> leftOperand = operandsPolish[k].GetRange(0, operandsPolish[k].Count);
+                            List<Token> rightOperand = operandsPolish[j].GetRange(0, operandsPolish[j].Count);
+
+                            int constIndex = 0;
+                            if (leftOperand.Count == 1 & leftOperand[constIndex].Type == TokenType.Const)
+                            {
+                                if (isAnd)
+                                {
+                                    if (leftOperand[constIndex].Equals(zero))
+                                    {
+                                        polishNotation.RemoveRange(index, expressionLength);
+                                        polishNotation.Insert(index, zero);
+                                        result = LogicalExpressionSyntaxAnalyzer.GetAllExpressions(polishNotation).Last();
+                                    }
+                                    else
+                                    {
+                                        polishNotation.RemoveRange(index, expressionLength);
+                                        operandsPolish.RemoveAt(k);
+                                        List<List<Token>> operands = new List<List<Token>>();
+                                        foreach (List<Token> operand in operandsPolish)
+                                            operands.Add(LogicalExpressionSyntaxAnalyzer.GetAllExpressions(operand).Last());
+                                        List<Token> newTokens = AddSeparators(operands, isAnd ? and : or);
+                                        List<Token> newPolish = LogicalExpressionSyntaxAnalyzer.GetPolishNotation(newTokens);
+                                        polishNotation.InsertRange(index, newPolish);
+                                        result = LogicalExpressionSyntaxAnalyzer.GetAllExpressions(polishNotation).Last();
+                                    }
+                                }
+                                else
+                                {
+                                    if (leftOperand[constIndex].Equals(zero))
+                                    {
+                                        polishNotation.RemoveRange(index, expressionLength);
+                                        operandsPolish.RemoveAt(k);
+                                        List<List<Token>> operands = new List<List<Token>>();
+                                        foreach (List<Token> operand in operandsPolish)
+                                            operands.Add(LogicalExpressionSyntaxAnalyzer.GetAllExpressions(operand).Last());
+                                        List<Token> newTokens = AddSeparators(operands, isAnd ? and : or);
+                                        List<Token> newPolish = LogicalExpressionSyntaxAnalyzer.GetPolishNotation(newTokens);
+                                        polishNotation.InsertRange(index, newPolish);
+                                        result = LogicalExpressionSyntaxAnalyzer.GetAllExpressions(polishNotation).Last();
+                                    }
+                                    else
+                                    {
+                                        polishNotation.RemoveRange(index, expressionLength);
+                                        polishNotation.Insert(index, one);
+                                        result = LogicalExpressionSyntaxAnalyzer.GetAllExpressions(polishNotation).Last();
+                                    }
+                                }
+
+                                isChanged = true;
+                                return result;
+                            }
+                            else if (rightOperand.Count == 1 & rightOperand[constIndex].Type == TokenType.Const)
+                            {
+                                if (isAnd)
+                                {
+                                    if (rightOperand[constIndex].Equals(zero))
+                                    {
+                                        polishNotation.RemoveRange(index, expressionLength);
+                                        polishNotation.Insert(index, zero);
+                                        result = LogicalExpressionSyntaxAnalyzer.GetAllExpressions(polishNotation).Last();
+                                    }
+                                    else
+                                    {
+                                        polishNotation.RemoveRange(index, expressionLength);
+                                        operandsPolish.RemoveAt(j);
+                                        List<List<Token>> operands = new List<List<Token>>();
+                                        foreach (List<Token> operand in operandsPolish)
+                                            operands.Add(LogicalExpressionSyntaxAnalyzer.GetAllExpressions(operand).Last());
+                                        List<Token> newTokens = AddSeparators(operands, isAnd ? and : or);
+                                        List<Token> newPolish = LogicalExpressionSyntaxAnalyzer.GetPolishNotation(newTokens);
+                                        polishNotation.InsertRange(index, newPolish);
+                                        result = LogicalExpressionSyntaxAnalyzer.GetAllExpressions(polishNotation).Last();
+                                    }
+                                }
+                                else
+                                {
+                                    if (rightOperand[constIndex].Equals(zero))
+                                    {
+                                        polishNotation.RemoveRange(index, expressionLength);
+                                        operandsPolish.RemoveAt(j);
+                                        List<List<Token>> operands = new List<List<Token>>();
+                                        foreach (List<Token> operand in operandsPolish)
+                                            operands.Add(LogicalExpressionSyntaxAnalyzer.GetAllExpressions(operand).Last());
+                                        List<Token> newTokens = AddSeparators(operands, isAnd ? and : or);
+                                        List<Token> newPolish = LogicalExpressionSyntaxAnalyzer.GetPolishNotation(newTokens);
+                                        polishNotation.InsertRange(index, newPolish);
+                                        result = LogicalExpressionSyntaxAnalyzer.GetAllExpressions(polishNotation).Last();
+                                    }
+                                    else
+                                    {
+                                        polishNotation.RemoveRange(index, expressionLength);
+                                        polishNotation.Insert(index, one);
+                                        result = LogicalExpressionSyntaxAnalyzer.GetAllExpressions(polishNotation).Last();
+                                    }
+                                }
+
+                                isChanged = true;
+                                return result;
+                            }
+                        }
+                    }
+                }
+            }
+            
             return result;
         }
 
@@ -551,9 +898,11 @@ namespace MathematicalLogicProcessor
             int operandsCount = GetOperandsCountToGet(polishNotation, index, operation);
 
             int operandIndex = index;
-            operandIndex--;
             for (int i = 0; i < operandsCount; i++)
             {
+                if (polishNotation[operandIndex].Equals(operation))
+                    operandIndex--;
+
                 List<Token> operandPolish = GetOperandPolish(polishNotation, ref operandIndex);
                 operandsPolish.Add(operandPolish);
             }
@@ -602,7 +951,8 @@ namespace MathematicalLogicProcessor
 
             int count = 1;
             int tokensToGet = 1;
-            while (tokensToGet != 0)
+
+            while (tokensToGet != 0 && index >= 0)
             {
                 if (polishNotation[index].Type == TokenType.Operation)
                 {
@@ -612,6 +962,7 @@ namespace MathematicalLogicProcessor
                         if (polishNotation[index].Equals(operation))
                         {
                             count++;
+                            tokensToGet++;
                         }
                         else
                         {
@@ -620,7 +971,7 @@ namespace MathematicalLogicProcessor
                             {
                                 if (polishNotation[index].Type == TokenType.Operation)
                                 {
-                                    if (operandsCount.Any(n => n.Key == polishNotation[index].Identifier 
+                                    if (operandsCount.Any(n => n.Key == polishNotation[index].Identifier
                                         && n.Value == 2))
                                     {
                                         tokensToPass++;
@@ -647,6 +998,19 @@ namespace MathematicalLogicProcessor
             }
 
             return count;
+        }
+
+        private static bool AreOperandsEqual(List<Token> leftOperandPolish, List<Token> rightOperandPolish)
+        {
+            int length = leftOperandPolish.Count;
+            if (length != rightOperandPolish.Count)
+                return false;
+
+            for (int i = 0; i < length; i++)
+                if (!leftOperandPolish[i].Equals(rightOperandPolish[i]))
+                    return false;
+
+            return true;
         }
     }
 }
