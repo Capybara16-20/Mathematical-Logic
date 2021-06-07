@@ -149,7 +149,7 @@ namespace MathematicalLogicProcessor
             Dictionary<string, int> operationPriorities = Operation.Priorities;
 
             List<List<Token>> expressions = new List<List<Token>>();
-            if (polishNotation.Count <= 2)
+            if (polishNotation.Count == 1)
             {
                 expressions.Add(polishNotation);
 
