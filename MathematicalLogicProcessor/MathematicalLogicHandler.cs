@@ -13,14 +13,20 @@ namespace MathematicalLogicProcessor
         const string idempotencyLawMessage = "Применяем закон идемпотентности.";
         const string removeConstantsMessage = "Избавляемся от констант.";
         const string absorptionLawMessage = "Применяем закон поглощения.";
+        const string dnfYetMessage = "Выражение уже находится в ДНФ.";
+        const string cnfYetMessage = "Выражение уже находится в КНФ.";
 
         private TruthTable truthTable;
+        private ZhegalkinPolynomial zhegalkinPolynomial;
+        private PostClassification classification;
 
         public TruthTable TruthTable { get { return truthTable; } }
+        public ZhegalkinPolynomial ZhegalkinPolynomial { get { return zhegalkinPolynomial; } }
+        public PostClassification PostClassification { get { return classification; } }
 
         public MathematicalLogicHandler(string expression)
         {
-            LogicalExpressionSyntaxAnalyzer analyzer = null;
+            LogicalExpressionSyntaxAnalyzer analyzer;
             try
             {
                 analyzer = new LogicalExpressionSyntaxAnalyzer(expression);
@@ -33,6 +39,22 @@ namespace MathematicalLogicProcessor
             List<Operand> variables = analyzer.Variables;
             List<Token> polishNotation = analyzer.PolishNotation;
             truthTable = new TruthTable(variables, polishNotation);
+            zhegalkinPolynomial = new ZhegalkinPolynomial(variables, truthTable);
+            classification = new PostClassification(TruthTable, zhegalkinPolynomial);
+        }
+
+        public MathematicalLogicHandler(int functionNumber)
+        {
+            truthTable = new TruthTable(functionNumber);
+            List<Operand> variables = truthTable.Variables;
+            zhegalkinPolynomial = new ZhegalkinPolynomial(variables, truthTable);
+        }
+
+        public MathematicalLogicHandler(bool[] functionVector)
+        {
+            truthTable = new TruthTable(functionVector);
+            List<Operand> variables = truthTable.Variables;
+            zhegalkinPolynomial = new ZhegalkinPolynomial(variables, truthTable);
         }
 
         public MathematicalLogicHandler(TruthTable truthTable)
@@ -126,112 +148,135 @@ namespace MathematicalLogicProcessor
         {
             Dictionary<List<List<Token>>, string> dnf = new Dictionary<List<List<Token>>, string>();
 
-            /*bool isApplicable = true;
+            bool isApplicable = true;
             while (isApplicable)
             {
                 int changesCount = 0;
-                
-                changesCount++;
+
+                //эквивалентные преобразования
+                List<List<Token>> changes = new List<List<Token>> { tokens };
+                bool isTransformationApplicable = true;
+                while (isTransformationApplicable)
+                {
+                    tokens = ApplyTransform(tokens, ref isTransformationApplicable);
+
+                    if (isTransformationApplicable)
+                        changes.Add(tokens);
+                }
+
+                if (changes.Count > 1)
+                {
+                    dnf.Add(changes, transformationsMessage);
+                    changesCount++;
+                }
+
+                //законы де Моргана
+                changes = new List<List<Token>> { tokens };
+                bool isDeMorganApplicable = true;
+                while (isDeMorganApplicable)
+                {
+                    tokens = ApplyDeMorgansLaws(tokens, ref isDeMorganApplicable);
+
+
+                    if (isDeMorganApplicable)
+                        changes.Add(tokens);
+                }
+
+                if (changes.Count > 1)
+                {
+                    dnf.Add(changes, deMorgansLawsMessage);
+                    changesCount++;
+                }
+
+                //двойное отрицание
+                changes = new List<List<Token>> { tokens };
+                bool isChanged;
+                tokens = RemoveTwiceNo(tokens, out isChanged);
+
+                if (isChanged)
+                {
+                    changes.Add(tokens);
+                    dnf.Add(changes, removeTwiceNoMessage);
+                    changesCount++;
+                }
+
+                //дистрибутивность
+                changes = new List<List<Token>> { tokens };
+                bool isDNFDistributivityLawApplicable = true;
+                while (isDNFDistributivityLawApplicable)
+                {
+                    tokens = ApplyDNFDistributivityLaw(tokens, ref isDNFDistributivityLawApplicable);
+
+                    if (isDNFDistributivityLawApplicable)
+                        changes.Add(tokens);
+                }
+
+                if (changes.Count > 1)
+                {
+                    dnf.Add(changes, distributivityLawMessage);
+                    changesCount++;
+                }
+
+                //идемпотентность
+                changes = new List<List<Token>> { tokens };
+                bool isIdempotencyLawApplicable = true;
+                while (isIdempotencyLawApplicable)
+                {
+                    tokens = ApplyIdempotencyLaw(tokens, ref isIdempotencyLawApplicable);
+
+                    if (isIdempotencyLawApplicable)
+                        changes.Add(tokens);
+                }
+
+                if (changes.Count > 1)
+                {
+                    dnf.Add(changes, idempotencyLawMessage);
+                    changesCount++;
+                }
+
+                //удаление констант
+                changes = new List<List<Token>> { tokens };
+                bool isRemoveConstantApplicable = true;
+                while (isRemoveConstantApplicable)
+                {
+                    tokens = RemoveConstants(tokens, ref isRemoveConstantApplicable);
+
+                    if (isRemoveConstantApplicable)
+                        changes.Add(tokens);
+                }
+
+                if (changes.Count > 1)
+                {
+                    dnf.Add(changes, removeConstantsMessage);
+                    changesCount++;
+                }
+
+                //поглощение
+                changes = new List<List<Token>> { tokens };
+                bool isAbsorptionLawApplicable = true;
+                while (isAbsorptionLawApplicable)
+                {
+                    tokens = ApplyAbsorptionLaw(tokens, ref isAbsorptionLawApplicable);
+
+                    if (isAbsorptionLawApplicable)
+                        changes.Add(tokens);
+                }
+
+                if (changes.Count > 1)
+                {
+                    dnf.Add(changes, absorptionLawMessage);
+                    changesCount++;
+                }
                 
                 if (changesCount == 0)
                     isApplicable = false;
-            }*/
-
-            //эквивалентные преобразования
-            List<List<Token>> changes = new List<List<Token>> { tokens };
-            bool isTransformationApplicable = true;
-            while (isTransformationApplicable)
-            {
-                tokens = ApplyTransform(tokens, ref isTransformationApplicable);
-                
-                if (isTransformationApplicable)
-                    changes.Add(tokens);
             }
 
-            if (changes.Count > 1)
-                dnf.Add(changes, transformationsMessage);
-
-            //законы де Моргана
-            changes = new List<List<Token>> { tokens };
-            bool isDeMorganApplicable = true;
-            while (isDeMorganApplicable)
+            if (dnf.Count == 0)
             {
-                tokens = ApplyDeMorgansLaws(tokens, ref isDeMorganApplicable);
-
-
-                if (isDeMorganApplicable)
-                    changes.Add(tokens);
+                List<List<Token>> decision = new List<List<Token>> { tokens };
+                dnf.Add(decision, dnfYetMessage);
             }
-
-            if (changes.Count > 1)
-                dnf.Add(changes, deMorgansLawsMessage);
-
-            //двойное отрицание
-            changes = new List<List<Token>> { tokens };
-            bool isChanged;
-            tokens = RemoveTwiceNo(tokens, out isChanged);
-            
-            if (isChanged)
-            {
-                changes.Add(tokens);
-                dnf.Add(changes, removeTwiceNoMessage);
-            }
-
-            //дистрибутивность
-            changes = new List<List<Token>> { tokens };
-            bool isDNFDistributivityLawApplicable = true;
-            while (isDNFDistributivityLawApplicable)
-            {
-                tokens = ApplyDNFDistributivityLaw(tokens, ref isDNFDistributivityLawApplicable);
-
-                if (isDNFDistributivityLawApplicable)
-                    changes.Add(tokens);
-            }
-
-            if (changes.Count > 1)
-                dnf.Add(changes, distributivityLawMessage);
-
-            //идемпотентность
-            changes = new List<List<Token>> { tokens };
-            bool isIdempotencyLawApplicable = true;
-            while (isIdempotencyLawApplicable)
-            {
-                tokens = ApplyIdempotencyLaw(tokens, ref isIdempotencyLawApplicable);
-
-                if (isIdempotencyLawApplicable)
-                    changes.Add(tokens);
-            }
-
-            if (changes.Count > 1)
-                dnf.Add(changes, idempotencyLawMessage);
-
-            //удаление констант
-            changes = new List<List<Token>> { tokens };
-            bool isRemoveConstantApplicable = true;
-            while (isRemoveConstantApplicable)
-            {
-                tokens = RemoveConstants(tokens, ref isRemoveConstantApplicable);
-
-                if (isRemoveConstantApplicable)
-                    changes.Add(tokens);
-            }
-
-            if (changes.Count > 1)
-                dnf.Add(changes, removeConstantsMessage);
-
-            //поглощение
-            changes = new List<List<Token>> { tokens };
-            bool isAbsorptionLawApplicable = true;
-            while (isAbsorptionLawApplicable)
-            {
-                tokens = ApplyAbsorptionLaw(tokens, ref isAbsorptionLawApplicable);
-
-                if (isAbsorptionLawApplicable)
-                    changes.Add(tokens);
-            }
-
-            if (changes.Count > 1)
-                dnf.Add(changes, absorptionLawMessage);
 
             return dnf;
         }
@@ -240,86 +285,134 @@ namespace MathematicalLogicProcessor
         {
             Dictionary<List<List<Token>>, string> cnf = new Dictionary<List<List<Token>>, string>();
 
-            //эквивалентные преобразования
-            List<List<Token>> changes = new List<List<Token>> { tokens };
-            bool isTransformationApplicable = true;
-            while (isTransformationApplicable)
+            bool isApplicable = true;
+            while (isApplicable)
             {
-                tokens = ApplyTransform(tokens, ref isTransformationApplicable);
+                int changesCount = 0;
 
-                if (isTransformationApplicable)
+                //эквивалентные преобразования
+                List<List<Token>> changes = new List<List<Token>> { tokens };
+                bool isTransformationApplicable = true;
+                while (isTransformationApplicable)
+                {
+                    tokens = ApplyTransform(tokens, ref isTransformationApplicable);
+
+                    if (isTransformationApplicable)
+                        changes.Add(tokens);
+                }
+
+                if (changes.Count > 1)
+                {
+                    cnf.Add(changes, transformationsMessage);
+                    changesCount++;
+                }
+
+                //законы де Моргана
+                changes = new List<List<Token>> { tokens };
+                bool isDeMorganApplicable = true;
+                while (isDeMorganApplicable)
+                {
+                    tokens = ApplyDeMorgansLaws(tokens, ref isDeMorganApplicable);
+
+                    if (isDeMorganApplicable)
+                        changes.Add(tokens);
+                }
+
+                if (changes.Count > 1)
+                {
+                    cnf.Add(changes, deMorgansLawsMessage);
+                    changesCount++;
+                }
+
+                //двойное отрицание
+                changes = new List<List<Token>> { tokens };
+                bool isChanged;
+                tokens = RemoveTwiceNo(tokens, out isChanged);
+
+                if (isChanged)
+                {
                     changes.Add(tokens);
+                    cnf.Add(changes, removeTwiceNoMessage);
+                    changesCount++;
+                }
+
+                //дистрибутивность
+                changes = new List<List<Token>> { tokens };
+                bool isCNFDistributivityLawApplicable = true;
+                while (isCNFDistributivityLawApplicable)
+                {
+                    tokens = ApplyCNFDistributivity(tokens, ref isCNFDistributivityLawApplicable);
+
+                    if (isCNFDistributivityLawApplicable)
+                        changes.Add(tokens);
+                }
+
+                if (changes.Count > 1)
+                {
+                    cnf.Add(changes, distributivityLawMessage);
+                    changesCount++;
+                }
+
+                //идемпотентность
+                changes = new List<List<Token>> { tokens };
+                bool isIdempotencyLawApplicable = true;
+                while (isIdempotencyLawApplicable)
+                {
+                    tokens = ApplyIdempotencyLaw(tokens, ref isIdempotencyLawApplicable);
+
+                    if (isIdempotencyLawApplicable)
+                        changes.Add(tokens);
+                }
+
+                if (changes.Count > 1)
+                {
+                    cnf.Add(changes, idempotencyLawMessage);
+                    changesCount++;
+                }
+
+                //удаление констант
+                changes = new List<List<Token>> { tokens };
+                bool isRemoveConstantApplicable = true;
+                while (isRemoveConstantApplicable)
+                {
+                    tokens = RemoveConstants(tokens, ref isRemoveConstantApplicable);
+
+                    if (isRemoveConstantApplicable)
+                        changes.Add(tokens);
+                }
+
+                if (changes.Count > 1)
+                {
+                    cnf.Add(changes, removeConstantsMessage);
+                    changesCount++;
+                }
+
+                //поглощение
+                changes = new List<List<Token>> { tokens };
+                bool isAbsorptionLawApplicable = true;
+                while (isAbsorptionLawApplicable)
+                {
+                    tokens = ApplyAbsorptionLaw(tokens, ref isAbsorptionLawApplicable);
+
+                    if (isAbsorptionLawApplicable)
+                        changes.Add(tokens);
+                }
+
+                if (changes.Count > 1)
+                {
+                    cnf.Add(changes, absorptionLawMessage);
+                    changesCount++;
+                }
+
+                if (changesCount == 0)
+                    isApplicable = false;
             }
 
-            if (changes.Count > 1)
-                cnf.Add(changes, transformationsMessage);
-
-            //законы де Моргана
-            changes = new List<List<Token>> { tokens };
-            bool isDeMorganApplicable = true;
-            while (isDeMorganApplicable)
+            if (cnf.Count == 0)
             {
-                tokens = ApplyDeMorgansLaws(tokens, ref isDeMorganApplicable);
-
-                if (isDeMorganApplicable)
-                    changes.Add(tokens);
+                List<List<Token>> decision = new List<List<Token>> { tokens };
+                cnf.Add(decision, cnfYetMessage);
             }
-
-            if (changes.Count > 1)
-                cnf.Add(changes, deMorgansLawsMessage);
-
-            //двойное отрицание
-            changes = new List<List<Token>> { tokens };
-            bool isChanged;
-            tokens = RemoveTwiceNo(tokens, out isChanged);
-
-            if (isChanged)
-            {
-                changes.Add(tokens);
-                cnf.Add(changes, removeTwiceNoMessage);
-            }
-
-            //дистрибутивность
-            changes = new List<List<Token>> { tokens };
-            bool isCNFDistributivityLawApplicable = true;
-            while (isCNFDistributivityLawApplicable)
-            {
-                tokens = ApplyCNFDistributivity(tokens, ref isCNFDistributivityLawApplicable);
-
-                if (isCNFDistributivityLawApplicable)
-                    changes.Add(tokens);
-            }
-
-            if (changes.Count > 1)
-                cnf.Add(changes, distributivityLawMessage);
-
-            //идемпотентность
-            changes = new List<List<Token>> { tokens };
-            bool isIdempotencyLawApplicable = true;
-            while (isIdempotencyLawApplicable)
-            {
-                tokens = ApplyIdempotencyLaw(tokens, ref isIdempotencyLawApplicable);
-
-                if (isIdempotencyLawApplicable)
-                    changes.Add(tokens);
-            }
-
-            if (changes.Count > 1)
-                cnf.Add(changes, idempotencyLawMessage);
-
-            //удаление констант
-            changes = new List<List<Token>> { tokens };
-            bool isRemoveConstantApplicable = true;
-            while (isRemoveConstantApplicable)
-            {
-                tokens = RemoveConstants(tokens, ref isRemoveConstantApplicable);
-
-                if (isRemoveConstantApplicable)
-                    changes.Add(tokens);
-            }
-
-            if (changes.Count > 1)
-                cnf.Add(changes, removeConstantsMessage);
 
             return cnf;
         }
@@ -675,7 +768,7 @@ namespace MathematicalLogicProcessor
                                 foreach (List<Token> operand in operandsPolish)
                                     operands.Add(LogicalExpressionSyntaxAnalyzer.GetAllExpressions(operand).Last());
                                 List<Token> newTokens = AddSeparators(operands, isAnd ? and : or);
-                                List<Token> newPolish = LogicalExpressionSyntaxAnalyzer.GetPolishNotation(newTokens);
+                                List <Token> newPolish = LogicalExpressionSyntaxAnalyzer.GetPolishNotation(newTokens);
                                 polishNotation.InsertRange(index, newPolish);
                                 result = LogicalExpressionSyntaxAnalyzer.GetAllExpressions(polishNotation).Last();
 
@@ -1012,10 +1105,16 @@ namespace MathematicalLogicProcessor
 
         private static List<Token> AddSeparators(List<List<Token>> operands, Token separator)
         {
+            Token and = new Token(Operation.And, TokenType.Operation);
+            Token or = new Token(Operation.Or, TokenType.Operation);
+
+            bool isAnd = separator.Equals(and);
+
             List<Token> result = new List<Token>();
             foreach (List<Token> operand in operands)
             {
-                result.AddRange(operand);
+                result.AddRange(LogicalExpressionSyntaxAnalyzer.IsNeedBraces(operand, separator) 
+                    ? LogicalExpressionSyntaxAnalyzer.EncloseInBraces(operand) : operand);
                 result.Add(separator);
             }
             result.RemoveAt(result.Count - 1);
