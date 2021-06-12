@@ -7,11 +7,11 @@ namespace MathematicalLogicProcessor
 {
     public class Operation : Token
     {
-        public const string OperationPattern = @"¬|\&|\+|\^|→|←|↔|↓|\|";
+        public const string OperationPattern = @"¬|\∧|\∨|\⊕|→|←|↔|↓|\|";
         public const string Not = "¬";
-        public const string And = "&";
-        public const string Or = "+";
-        public const string Xor = "^";
+        public const string And = "∧";
+        public const string Or = "∨";
+        public const string Xor = "⊕";
         public const string  Implication = "→";
         public const string ReverseImplication = "←";
         public const string Xnor = "↔";
