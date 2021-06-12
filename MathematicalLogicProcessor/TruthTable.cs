@@ -74,7 +74,7 @@ namespace MathematicalLogicProcessor
             double length;
             do
             {
-                length = Math.Pow(2, variablesCount);
+                length = Math.Pow(binaryBase, variablesCount);
                 maxNumber = Math.Pow(binaryBase, length);
                 variablesCount++;
             }
