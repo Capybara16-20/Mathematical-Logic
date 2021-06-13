@@ -61,6 +61,7 @@ namespace MathematicalLogicProcessorUI
             // 
             // llDecision
             // 
+            this.llDecision.ActiveLinkColor = System.Drawing.Color.Tomato;
             this.llDecision.AutoSize = true;
             this.llDecision.Font = new System.Drawing.Font("Segoe UI", 12F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point);
             this.llDecision.LinkColor = System.Drawing.Color.Black;
@@ -76,7 +77,7 @@ namespace MathematicalLogicProcessorUI
             // 
             this.pDecision.AutoSize = true;
             this.pDecision.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.pDecision.BackColor = System.Drawing.SystemColors.ControlDark;
+            this.pDecision.BackColor = System.Drawing.SystemColors.Control;
             this.pDecision.Dock = System.Windows.Forms.DockStyle.Bottom;
             this.pDecision.Location = new System.Drawing.Point(0, 100);
             this.pDecision.Name = "pDecision";

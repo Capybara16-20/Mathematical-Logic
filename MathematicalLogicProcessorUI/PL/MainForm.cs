@@ -24,6 +24,10 @@ namespace MathematicalLogicProcessorUI.PL
         const string notChoosenOptionsMessage = "Не выбраны условия для расчёта.";
         const string notExists = "Не существует";
 
+        const string undefinedCoefficientName = "Метод неопределённых коэффициентов";
+        const string triangleName = "Метод треугольника";
+        const string fftName = "Метод БПФ";
+
         public MainForm()
         {
             InitializeComponent();
@@ -193,29 +197,31 @@ namespace MathematicalLogicProcessorUI.PL
 
         private void AddResults(List<CheckBox> checkBoxes)
         {
-            /*foreach (CheckBox checkBox in checkBoxes)
+            foreach (CheckBox checkBox in checkBoxes)
                 if (checkBox.Text == classificationString)
-                    AddResult(classificationString, handler.Classification);*/
+                    AddResult(classificationString, handler.PostClassificationHeaders, 
+                        handler.PostClassification, handler.PostClassificationDecision);
 
             foreach (CheckBox checkBox in checkBoxes)
                 if (checkBox.Text == polinomialString)
-                    AddResult(polinomialString, handler.Polynomial);
+                    AddResult(polinomialString, handler.Polynomial, handler.UndefinedCoefficientMethodTable, 
+                        handler.TriangleMethodTable, handler.FFTMethodTable);
 
             foreach (CheckBox checkBox in checkBoxes)
                 if (checkBox.Text == dnfString)
-                    AddResult(dnfString, handler.DNFDecision, handler.DNF);
+                    AddResult(dnfString, handler.DNF, handler.DNFDecision);
 
             foreach (CheckBox checkBox in checkBoxes)
                 if (checkBox.Text == cnfString)
-                    AddResult(cnfString, handler.CNFDecision, handler.CNF);
+                    AddResult(cnfString, handler.CNF, handler.CNFDecision);
 
             foreach (CheckBox checkBox in checkBoxes)
                 if (checkBox.Text == pdnfString)
-                    AddResult(pdnfString, handler.PDNF);
+                    AddResult(pdnfString, handler.PDNF, handler.PDNFDecision);
 
             foreach (CheckBox checkBox in checkBoxes)
                 if (checkBox.Text == pcnfString)
-                    AddResult(pcnfString, handler.PCNF);
+                    AddResult(pcnfString, handler.PCNF, handler.PCNFDecision);
 
             foreach (CheckBox checkBox in checkBoxes)
                 if (checkBox.Text == truthTableString)
@@ -237,9 +243,41 @@ namespace MathematicalLogicProcessorUI.PL
             pOutput.Controls.Add(ucResult);
         }
 
-        private void AddResult(string resultName, Dictionary<List<string>, string> decision, string result)
+        private void AddResult(string resultName, string result, List<string> decision)
         {
-            ResultUserControl ucResult = new ResultUserControl(resultName, decision, result);
+            ResultUserControl ucResult = new ResultUserControl(resultName, result, decision);
+            ucResult.Dock = DockStyle.Top;
+
+            if (pOutput.Controls.Count > 0)
+            {
+                SeparatorUserControl separator = new SeparatorUserControl();
+                separator.Dock = DockStyle.Top;
+                pOutput.Controls.Add(separator);
+            }
+
+            pOutput.Controls.Add(ucResult);
+        }
+
+        private void AddResult(string resultName, string result, Dictionary<List<string>, string> decision)
+        {
+            ResultUserControl ucResult = new ResultUserControl(resultName, result, decision);
+            ucResult.Dock = DockStyle.Top;
+
+            if (pOutput.Controls.Count > 0)
+            {
+                SeparatorUserControl separator = new SeparatorUserControl();
+                separator.Dock = DockStyle.Top;
+                pOutput.Controls.Add(separator);
+            }
+
+            pOutput.Controls.Add(ucResult);
+        }
+
+        private void AddResult(string resultName, string result, List<List<string>> undefinedCoefficient,
+            List<List<string>> triangle, List<List<string>> fft)
+        {
+            ResultUserControl ucResult = new ResultUserControl(resultName, result, undefinedCoefficient,
+                undefinedCoefficientName, triangle, triangleName, fft, fftName);
             ucResult.Dock = DockStyle.Top;
 
             if (pOutput.Controls.Count > 0)
@@ -254,7 +292,24 @@ namespace MathematicalLogicProcessorUI.PL
 
         private void AddResult(string resultName, List<string> headers, List<List<string>> table)
         {
-            TableResultUserControl ucResult = new TableResultUserControl(resultName, headers, table);
+            TableResultUserControl ucResult = new TableResultUserControl(resultName, headers, 
+                table);
+            ucResult.Dock = DockStyle.Top;
+
+            if (pOutput.Controls.Count > 0)
+            {
+                SeparatorUserControl separator = new SeparatorUserControl();
+                separator.Dock = DockStyle.Top;
+                pOutput.Controls.Add(separator);
+            }
+
+            pOutput.Controls.Add(ucResult);
+        }
+
+        private void AddResult(string resultName, List<string> headers, List<string> table,
+            List<List<string>> decision)
+        {
+            TableResultUserControl ucResult = new TableResultUserControl(resultName, headers, table, decision);
             ucResult.Dock = DockStyle.Top;
 
             if (pOutput.Controls.Count > 0)

@@ -13,27 +13,36 @@ namespace MathematicalLogicProcessorUI.BLL
 
         private TruthTable truthTable;
         private List<Token> pcnf;
+        private List<string> pcnfDecision;
         private List<Token> pdnf;
+        private List<string> pdnfDecision;
         private Dictionary<List<List<Token>>, string> cnf;
         private Dictionary<List<List<Token>>, string> dnf;
         private ZhegalkinPolynomial polynomial;
+        private PostClassification classification;
 
         public List<string> TruthTableHeaders { get { return GetListOfString(truthTable.Headers); } }
         public List<List<string>> TruthTable { get { return GetTable(truthTable); } }
         public string PCNF { get { return GetExpressionString(pcnf); } }
-        //public Dictionary<List<string>, string> PCNFDecision { get { return GetDecision(pcnf); } }///
+        public List<string> PCNFDecision { get { return pcnfDecision; } }
         public string PDNF { get { return GetExpressionString(pdnf); } }
-        //public Dictionary<List<string>, string> PDNFDecision { get { return GetExpressionString(pdnf); } }///
+        public List<string> PDNFDecision { get { return pdnfDecision; } }
         public string CNF { get { return GetExpressionString(cnf); } }
         public Dictionary<List<string>, string> CNFDecision { get { return GetDecision(cnf); } }
         public string DNF { get { return GetExpressionString(dnf); } }
         public Dictionary<List<string>, string> DNFDecision { get { return GetDecision(dnf); } }
         public string Polynomial { get { return polynomial.Polinomial; } }
+        public List<List<string>> UndefinedCoefficientMethodTable { get { return polynomial.UndefinedCoefficientMethodTable; } }
+        public List<List<string>> TriangleMethodTable { get { return polynomial.TriangleMethodTable; } }
+        public List<List<string>> FFTMethodTable { get { return polynomial.FFTMethodTable; } }
+        public List<string> PostClassificationHeaders { get { return classification.Headers; } }
+        public List<string> PostClassification { get { return classification.Classification; } }
+        public List<List<string>> PostClassificationDecision { get { return classification.Decision; } }
 
         public HandlerBL(string expression)
         {
-            MathematicalLogicHandler handler = null;
-            bool isExpression = false;
+            MathematicalLogicHandler handler;
+            bool isExpression;
 
             if (!IsExpression(expression))
             {
@@ -69,8 +78,8 @@ namespace MathematicalLogicProcessorUI.BLL
 
             truthTable = handler.TruthTable;
 
-            pcnf = handler.GetPCNF();
-            pdnf = handler.GetPDNF();
+            pcnf = handler.GetPCNF(out pcnfDecision);
+            pdnf = handler.GetPDNF(out pdnfDecision);
 
             List<Token> tokens; 
             if (isExpression)
@@ -82,6 +91,7 @@ namespace MathematicalLogicProcessorUI.BLL
             dnf = handler.GetDNF(tokens);
 
             polynomial = handler.ZhegalkinPolynomial;
+            classification = handler.PostClassification;
         }
 
         private string GetExpressionString(List<Token> tokens)

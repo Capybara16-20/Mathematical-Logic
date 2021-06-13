@@ -1,9 +1,10 @@
 ﻿using System.Collections.Generic;
 using System.Windows.Forms;
+using MathematicalLogicProcessorUI.PL;
 
 namespace MathematicalLogicProcessorUI
 {
-    public partial class DecisionUserControl : UserControl
+    public partial class DecisionUserControl : UserControl, IDecision
     {
         public DecisionUserControl(Dictionary<List<string>, string> decision)
         {
@@ -11,6 +12,7 @@ namespace MathematicalLogicProcessorUI
 
             InitializeComponent();
 
+            lbDecision.Items.Clear();
             foreach (List<string> expressions in decision.Keys)
             {
                 lbDecision.Items.Add(decision[expressions]);
@@ -25,6 +27,21 @@ namespace MathematicalLogicProcessorUI
 
             AutoSizeMode = AutoSizeMode.GrowAndShrink;
             AutoSize = true;
+            lbDecision.AutoSize = true;
+        }
+
+        public DecisionUserControl(List<string> decision)
+        {
+            InitializeComponent();
+
+            lbDecision.Items.Clear();
+            foreach (string line in decision)
+                lbDecision.Items.Add(line);
+            lbDecision.Items.Add(string.Empty);
+
+            AutoSizeMode = AutoSizeMode.GrowAndShrink;
+            AutoSize = true;
+            lbDecision.AutoSize = true;
         }
     }
 }

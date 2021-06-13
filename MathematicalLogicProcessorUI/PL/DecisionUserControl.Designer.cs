@@ -45,13 +45,11 @@ namespace MathematicalLogicProcessorUI
             this.lbDecision.SelectionMode = System.Windows.Forms.SelectionMode.None;
             this.lbDecision.Size = new System.Drawing.Size(0, 21);
             this.lbDecision.TabIndex = 0;
-            this.lbDecision.AutoSize = true;
             // 
             // DecisionUserControl
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.AutoScroll = false;
             this.AutoSize = true;
             this.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.BackColor = System.Drawing.Color.OrangeRed;
@@ -59,7 +57,6 @@ namespace MathematicalLogicProcessorUI
             this.Name = "DecisionUserControl";
             this.Size = new System.Drawing.Size(0, 21);
             this.ResumeLayout(false);
-            this.PerformLayout();
 
         }
 
