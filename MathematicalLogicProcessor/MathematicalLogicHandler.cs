@@ -1,20 +1,29 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 
 namespace MathematicalLogicProcessor
 {
     public class MathematicalLogicHandler
     {
-        const string transformationsMessage = "Применяем эквивалентные преобразования.";
-        const string deMorgansLawsMessage = "Применяем законы де Моргана.";
-        const string removeTwiceNoMessage = "Удаляем двойные отрицания.";
-        const string distributivityLawMessage = "Применяем закон дистрибутивности.";
-        const string idempotencyLawMessage = "Применяем закон идемпотентности.";
-        const string removeConstantsMessage = "Избавляемся от констант.";
-        const string absorptionLawMessage = "Применяем закон поглощения.";
-        const string dnfYetMessage = "Выражение уже находится в ДНФ.";
-        const string cnfYetMessage = "Выражение уже находится в КНФ.";
+        private const string findSetsFormat = "Найдём наборы, на которых функция принимает {0} значение: ";
+        private const string alignFormat = "В соответствие найденным наборам поставим элементарные " +
+            "{0} по всем переменным,";
+        private const string negationConditionMessage = "если переменная в наборе принимает значение {0}, " +
+            "то она будет записана с отрицанием:";
+        private const string conformityFormat = "{0} : {1}";
+        private const string associationFormat = "Объединим {0} с помощью операции {1}:";
+
+        private const string transformationsMessage = "Применяем эквивалентные преобразования.";
+        private const string deMorgansLawsMessage = "Применяем законы де Моргана.";
+        private const string removeTwiceNoMessage = "Удаляем двойные отрицания.";
+        private const string distributivityLawMessage = "Применяем закон дистрибутивности.";
+        private const string idempotencyLawMessage = "Применяем закон идемпотентности.";
+        private const string removeConstantsMessage = "Избавляемся от констант.";
+        private const string absorptionLawMessage = "Применяем закон поглощения.";
+        private const string dnfYetMessage = "Выражение уже находится в ДНФ.";
+        private const string cnfYetMessage = "Выражение уже находится в КНФ.";
 
         private TruthTable truthTable;
         private ZhegalkinPolynomial zhegalkinPolynomial;
@@ -62,47 +71,109 @@ namespace MathematicalLogicProcessor
             this.truthTable = truthTable;
         }
 
-        public List<Token> GetPDNF()
+        public List<Token> GetPDNF(out List<string> decision)
         {
+            const string truth = "истинное";
+            const string setFormat = "{{{0}}}";
+            const string separator = ",";
+            const string conjunctions = "конъюнкции";
+            const string zero = "0";
+            const string or = "ИЛИ";
+
+            decision = new List<string>();
+            string findSets = string.Format(findSetsFormat, truth);
+            decision.Add(findSets);
+
+            List<string> setsStr = new List<string>();
+            StringBuilder sbSets = new StringBuilder();
             List<Token> pdnf = new List<Token>();
             bool[] vector = truthTable.FunctionVector;
             List<Operand> variables = truthTable.Variables;
             int variablesCount = truthTable.Variables.Count;
-
             List<List<Token>> temp = new List<List<Token>>();
             for (int i = 0; i < vector.Length; i++)
             {
                 if (vector[i])
                 {
-                    List<Token> disjunction = new List<Token>();
+                    StringBuilder sbSet = new StringBuilder();
+                    List<Token> conjunction = new List<Token>();
                     for (int j = 0; j < variablesCount; j++)
                     {
                         if (truthTable[i, j])
                         {
-                            disjunction.Add(variables[j]);
+                            sbSet.Append("1");
+                            conjunction.Add(variables[j]);
                         }
                         else
                         {
-                            disjunction.Add(new Token(Operation.Not, TokenType.Operation));
-                            disjunction.Add(variables[j]);
+                            sbSet.Append("0");
+                            conjunction.Add(new Token(Operation.Not, TokenType.Operation));
+                            conjunction.Add(variables[j]);
                         }
                     }
 
-                    LogicalExpressionSyntaxAnalyzer.AddSeparator(disjunction, new Token(Operation.And, TokenType.Operation));
-                    temp.Add(disjunction);
+                    string set = string.Format(setFormat, sbSet.ToString());
+                    sbSets.Append(set);
+                    sbSets.Append(separator);
+
+                    setsStr.Add(set);
+
+                    LogicalExpressionSyntaxAnalyzer.AddSeparator(conjunction, new Token(Operation.And, TokenType.Operation));
+                    temp.Add(conjunction);
                 }
             }
 
-            foreach (List<Token> tokens in temp)
-                pdnf.AddRange(tokens);
+            sbSets.Remove(sbSets.Length - 1, 1);
+            string sets = sbSets.ToString();
+            decision.Add(sets);
+
+            string align = string.Format(alignFormat, conjunctions);
+            decision.Add(align);
+
+            string negationCondition = string.Format(negationConditionMessage, zero);
+            decision.Add(negationCondition);
+
+            for (int i = 0; i < temp.Count; i++)
+            {
+                pdnf.AddRange(temp[i]);
+
+                StringBuilder sbTokens = new StringBuilder();
+                foreach (Token token in temp[i])
+                    sbTokens.Append(token.Identifier);
+                string tokens = sbTokens.ToString();
+
+                string conformity = string.Format(conformityFormat, setsStr[i], tokens);
+                decision.Add(conformity);
+            }
 
             LogicalExpressionSyntaxAnalyzer.AddSeparator(pdnf, new Token(Operation.Or, TokenType.Operation));
+
+            string association = string.Format(associationFormat, conjunctions, or);
+            decision.Add(association);
+
+            StringBuilder sbPdnf = new StringBuilder();
+            foreach (Token token in pdnf)
+                sbPdnf.Append(token.Identifier);
+            decision.Add(sbPdnf.ToString());
 
             return pdnf;
         }
 
-        public List<Token> GetPCNF()
+        public List<Token> GetPCNF(out List<string> decision)
         {
+            const string lie = "ложное";
+            const string setFormat = "{{{0}}}";
+            const string separator = ",";
+            const string disjunctions = "дизъюнкции";
+            const string one = "1";
+            const string and = "И";
+
+            decision = new List<string>();
+            string findSets = string.Format(findSetsFormat, lie);
+            decision.Add(findSets);
+
+            List<string> setsStr = new List<string>();
+            StringBuilder sbSets = new StringBuilder();
             List<Token> pcnf = new List<Token>();
             bool[] vector = truthTable.FunctionVector;
             List<Operand> variables = truthTable.Variables;
@@ -113,33 +184,70 @@ namespace MathematicalLogicProcessor
             {
                 if (!vector[i])
                 {
+                    StringBuilder sbSet = new StringBuilder();
                     List<Token> disjunction = new List<Token>();
                     for (int j = 0; j < variablesCount; j++)
                     {
                         if (!truthTable[i, j])
                         {
+                            sbSet.Append("0");
                             disjunction.Add(variables[j]);
                         }
                         else
                         {
+                            sbSet.Append("1");
                             disjunction.Add(new Token(Operation.Not, TokenType.Operation));
                             disjunction.Add(variables[j]);
                         }
                     }
+
+                    string set = string.Format(setFormat, sbSet.ToString());
+                    sbSets.Append(set);
+                    sbSets.Append(separator);
+
+                    setsStr.Add(set);
 
                     LogicalExpressionSyntaxAnalyzer.AddSeparator(disjunction, new Token(Operation.Or, TokenType.Operation));
                     temp.Add(disjunction);
                 }
             }
 
+            sbSets.Remove(sbSets.Length - 1, 1);
+            string sets = sbSets.ToString();
+            decision.Add(sets);
+
+            string align = string.Format(alignFormat, disjunctions);
+            decision.Add(align);
+
+            string negationCondition = string.Format(negationConditionMessage, one);
+            decision.Add(negationCondition);
+
             if (temp.Count > 1)
                 for (int i = 0; i < temp.Count; i++)
                     temp[i] = LogicalExpressionSyntaxAnalyzer.EncloseInBraces(temp[i]);
 
-            foreach (List<Token> tokens in temp)
-                pcnf.AddRange(tokens);
+            for (int i = 0; i < temp.Count; i++)
+            {
+                pcnf.AddRange(temp[i]);
+
+                StringBuilder sbTokens = new StringBuilder();
+                foreach (Token token in temp[i])
+                    sbTokens.Append(token.Identifier);
+                string tokens = sbTokens.ToString();
+
+                string conformity = string.Format(conformityFormat, setsStr[i], tokens);
+                decision.Add(conformity);
+            }
 
             LogicalExpressionSyntaxAnalyzer.AddSeparator(pcnf, new Token(Operation.And, TokenType.Operation));
+
+            string association = string.Format(associationFormat, disjunctions, and);
+            decision.Add(association);
+
+            StringBuilder sbPcnf = new StringBuilder();
+            foreach (Token token in pcnf)
+                sbPcnf.Append(token.Identifier);
+            decision.Add(sbPcnf.ToString());
 
             return pcnf;
         }

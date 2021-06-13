@@ -15,7 +15,7 @@ namespace MathematicalLogicProcessor
         private const string affiliation = "пренадлежит";
         private const string nonAffiliation = "не пренадлежит";
 
-        private const string affiliationMessage = "Функция {0} классу {1}";
+        private const string affiliationFormat = "Функция {0} классу {1}";
 
         private readonly List<string> classification;
         private readonly List<List<string>> decision;
@@ -66,11 +66,11 @@ namespace MathematicalLogicProcessor
 
         private bool isBelongsToClassT0(TruthTable truthTable, out List<string> decisionT0)
         {
-            const string requirementMessage = ", если на нулевом наборе она принимает значение 0.";
-            const string conditionMessage = "На нулевом наборе значение функции равно {0}.";
+            const string requirementFormat = ", если на нулевом наборе она принимает значение 0.";
+            const string conditionFormat = "На нулевом наборе значение функции равно {0}.";
 
-            string requirementPart = string.Format(affiliationMessage, affiliation, classT0 + "{0}");
-            string requirement = string.Format(requirementPart, requirementMessage);
+            string requirementPart = string.Format(affiliationFormat, affiliation, classT0 + "{0}");
+            string requirement = string.Format(requirementPart, requirementFormat);
 
             decisionT0 = new List<string>();
             decisionT0.Add(requirement);
@@ -79,10 +79,10 @@ namespace MathematicalLogicProcessor
             int rowIndex = 0;
             bool value = truthTable[rowIndex, columnIndex];
 
-            string condition = string.Format(conditionMessage, value ? "1" : "0");
+            string condition = string.Format(conditionFormat, value ? "1" : "0");
             decisionT0.Add(condition);
 
-            string conclusion = string.Format(affiliationMessage, !value ? affiliation : nonAffiliation, classT0 + ".");
+            string conclusion = string.Format(affiliationFormat, !value ? affiliation : nonAffiliation, classT0 + ".");
             decisionT0.Add(conclusion);
 
             return !value;
@@ -91,9 +91,9 @@ namespace MathematicalLogicProcessor
         private bool isBelongsToClassT1(TruthTable truthTable, out List<string> decisionT1)
         {
             const string requirementMessage = ", если на единичном наборе она принимает значение 1.";
-            const string conditionMessage = "На единичном наборе значение функции равно {0}.";
+            const string conditionFormat = "На единичном наборе значение функции равно {0}.";
 
-            string requirementPart = string.Format(affiliationMessage, affiliation, classT1 + "{0}");
+            string requirementPart = string.Format(affiliationFormat, affiliation, classT1 + "{0}");
             string requirement = string.Format(requirementPart, requirementMessage);
 
             decisionT1 = new List<string>();
@@ -103,10 +103,10 @@ namespace MathematicalLogicProcessor
             int rowIndex = truthTable.GetRowsCount() - 1;
             bool value = truthTable[rowIndex, columnIndex];
 
-            string condition = string.Format(conditionMessage, value ? "1" : "0");
+            string condition = string.Format(conditionFormat, value ? "1" : "0");
             decisionT1.Add(condition);
 
-            string conclusion = string.Format(affiliationMessage, value ? affiliation : nonAffiliation, classT1 + ".");
+            string conclusion = string.Format(affiliationFormat, value ? affiliation : nonAffiliation, classT1 + ".");
             decisionT1.Add(conclusion);
 
             return value;
@@ -117,9 +117,9 @@ namespace MathematicalLogicProcessor
             const string requirementMessage = ", если её полином Жегалкина не содержит произведений.";
             const string contains = "содержит произведения";
             const string notContains = "не содержит произведений";
-            const string conditionMessage = "Полином Жегалкина {0} {1}.";
+            const string conditionFormat = "Полином Жегалкина {0} {1}.";
 
-            string requirementPart = string.Format(affiliationMessage, affiliation, classL + "{0}");
+            string requirementPart = string.Format(affiliationFormat, affiliation, classL + "{0}");
             string requirement = string.Format(requirementPart, requirementMessage);
 
             decisionL = new List<string>();
@@ -128,10 +128,10 @@ namespace MathematicalLogicProcessor
             string polinomialString = polynomial.Polinomial;
             bool result = polinomialString.Contains(Operation.Xor);
 
-            string condition = string.Format(conditionMessage, polinomialString, result ? contains : notContains);
+            string condition = string.Format(conditionFormat, polinomialString, result ? contains : notContains);
             decisionL.Add(condition);
 
-            string conclusion = string.Format(affiliationMessage, result ? nonAffiliation : affiliation, classL + ".");
+            string conclusion = string.Format(affiliationFormat, result ? nonAffiliation : affiliation, classL + ".");
             decisionL.Add(conclusion);
 
             return !result;
@@ -141,12 +141,12 @@ namespace MathematicalLogicProcessor
         {
             const string requirementMessage = ", если для любой пары наборов α и β таких, что α ≤ β, " +
                 "выполняется условие f(α) ≤ f(β).";
-            const string comparisonMessage = "Сравниваем соседние наборы по {0}-й переменной:";
-            const string valuesComparisonMessage = "Сравним значения {0} и {1} - условие монотонности {2}.";
+            const string comparisonFormat = "Сравниваем соседние наборы по {0}-й переменной:";
+            const string valuesComparisonFormat = "Сравним значения {0} и {1} - условие монотонности {2}.";
             const string done = "выполнено";
             const string violated = "нарушено";
 
-            string requirementPart = string.Format(affiliationMessage, affiliation, classM + "{0}");
+            string requirementPart = string.Format(affiliationFormat, affiliation, classM + "{0}");
             string requirement = string.Format(requirementPart, requirementMessage);
 
             decisionM = new List<string>();
@@ -160,7 +160,7 @@ namespace MathematicalLogicProcessor
             double valuesCount = 1;
             while (valuesCount <= rowsCount / 2)
             {
-                string comparison = string.Format(comparisonMessage, pow);
+                string comparison = string.Format(comparisonFormat, pow);
                 decisionM.Add(comparison);
 
                 int index = 0;
@@ -191,14 +191,14 @@ namespace MathematicalLogicProcessor
                     int compare = string.Compare(firstValue, secondValue);
 
                     bool isDone = compare != 1;
-                    string valuesComparison = string.Format(valuesComparisonMessage, firstValue, secondValue,
+                    string valuesComparison = string.Format(valuesComparisonFormat, firstValue, secondValue,
                         isDone ? done : violated);
 
                     decisionM.Add(valuesComparison);
 
                     if (!isDone)
                     {
-                        conclusion = string.Format(affiliationMessage, nonAffiliation, classM + ".");
+                        conclusion = string.Format(affiliationFormat, nonAffiliation, classM + ".");
                         decisionM.Add(conclusion);
 
                         return false;
@@ -209,7 +209,7 @@ namespace MathematicalLogicProcessor
                 pow++;
             }
 
-            conclusion = string.Format(affiliationMessage, affiliation, classM + ".");
+            conclusion = string.Format(affiliationFormat, affiliation, classM + ".");
             decisionM.Add(conclusion);
             return true;
         }
@@ -217,11 +217,11 @@ namespace MathematicalLogicProcessor
         private bool isBelongsToClassS(TruthTable truthTable, out List<string> decisionS)
         {
             const string requirementMessage = ", если на противоположных наборах она принимает противоположные значения.";
-            const string valuesComparisonMessage = "Сравним значения на наборах {0} и {1}: {2} и {3} - {4}.";
+            const string valuesComparisonFormat = "Сравним значения на наборах {0} и {1}: {2} и {3} - {4}.";
             const string match = "совпадают";
             const string notMatch = "противоположны";
 
-            string requirementPart = string.Format(affiliationMessage, affiliation, classS + "{0}");
+            string requirementPart = string.Format(affiliationFormat, affiliation, classS + "{0}");
             string requirement = string.Format(requirementPart, requirementMessage);
 
             decisionS = new List<string>();
@@ -249,13 +249,13 @@ namespace MathematicalLogicProcessor
                 int compare = string.Compare(downValue, upValue);
                 bool isMatch = compare == 0;
 
-                string valuesComparison = string.Format(valuesComparisonMessage, downSet, upSet, 
+                string valuesComparison = string.Format(valuesComparisonFormat, downSet, upSet, 
                     downValue, upValue, isMatch ? match : notMatch);
                 decisionS.Add(valuesComparison);
 
                 if (isMatch)
                 {
-                    conclusion = string.Format(affiliationMessage, nonAffiliation, classS + ".");
+                    conclusion = string.Format(affiliationFormat, nonAffiliation, classS + ".");
                     decisionS.Add(conclusion);
 
                     return false;
@@ -265,7 +265,7 @@ namespace MathematicalLogicProcessor
                 upIndex--;
             }
 
-            conclusion = string.Format(affiliationMessage, affiliation, classS + ".");
+            conclusion = string.Format(affiliationFormat, affiliation, classS + ".");
             decisionS.Add(conclusion);
             return true;
         }
